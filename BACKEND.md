@@ -2,31 +2,58 @@
 
 ## Introdução
 
-A empresa _fictícia_ está crescendo rapidamente e precisa de uma API eficiente para gerenciar seus pedidos. Eles querem uma solução moderna, usando GraphQL, e precisam garantir que o banco de dados seja otimizado para consultas rápidas e seguras. Seu desafio é construir essa API!
+A empresa _fictícia_ está crescendo rapidamente e precisa de uma API eficiente para gerenciar seus pedidos. Eles querem uma solução moderna, usando GraphQL, e precisam garantir que o banco de dados seja otimizado para consultas rápidas e seguras.
 
-Você precisa criar uma API que permita:
+Seu desafio é construir essa API!
 
-- Cadastrar usuários, listar usuários e seus pedidos, cadastrar produtos, listar produtos e emitir ordens de compra de produtos.
-- O sistema deve garantir que pedidos simultâneos sejam processados corretamente, mantendo a integridade do estoque. Se um pedido não puder ser concluído por falta de estoque, deve ser rejeitado com um erro apropriado.
+#### A API deve permitir:
+
+- Cadastrar usuários
+- Listar usuários e seus pedidos
+- Cadastrar produtos
+- Listar produtos
+- Emitir ordens de compra de produtos
+
+Além disso:
+
+- O sistema deve garantir que pedidos simultâneos sejam processados corretamente, mantendo a integridade do estoque. 
+- Se um pedido não puder ser concluído por falta de estoque, deve ser rejeitado com um erro apropriado.
 - Disponibilizar a API via GraphQL.
-- Dockerfile com um docker-compose para rodar o projeto
-- configurar um workflow no GitHub Actions (opcional)
-- API escrita preferencialmente em Nodejs ou Golang
+- O projeto deve incluir Dockerfile e docker-compose para execução
+- A API deve ser escrita preferencialmente em Nodejs ou Golang
+- Incluir testes automatizados para as principais regras de negócio
+- Opcional:
+    - Configurar um workflow no GitHub Actions
+    - Incluir logs estruturados
 
-Você será avaliado:
+#### Você será avaliado:
 
-- Nas decisões técnica adotadas para realização do desafio
+- Nas decisões técnica adotadas e justificativas
 - Performance da API
-- Conhecimentos arquiteturais
+- Arquitetura e organização do código
+- Modelagem de dados e uso de transações
+- Qualidade dos testes
+- Clareza e completude da documentação
+- Tratamento de erros e robustez
 
 ## Entrega
 
 - Um repositório com a API implementada
-- Documentação explicando as decisões técnicas.
+- README com:
+    - Instruções de execução
+    - Decisões técnicas
+    - Trade-offs
+    - Pontos que faria diferente com mais tempo
+
+## Escopo e tempo estimado
+
+Este desafio deve levar entre 4 e 6 horas
+Não esperamos funcionalidades além das descritas
+Se quiser sugerir melhorias, descreva no README em vez de implementá-las
 
 ## Sugestão de estrura
 
-Aqui tem um direcionamento de estrutura para realização do desafio, lembrando que isso é só uma sugestão, fica a cargo de você decidir o que é melhor.
+Aqui tem um direcionamento de estrutura para realização do desafio. Você pode adaptar conforme achar melhor.
 
 ```sql
 CREATE TABLE users (
