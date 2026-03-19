@@ -227,4 +227,4 @@ O código será avaliado nos seguintes aspectos:
 ## Entrega
 
 - Repositório público no GitHub
-- Prazo: **5 dias corridos** a partir do recebimento deste desafio
+- Prazo: **7 dias corridos** a partir do recebimento deste desafio
