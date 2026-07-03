@@ -1,0 +1,63 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      API_PORT: 3333
+    ports:
+      - "3333:3333"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3333/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Vazia: o navegador deriva http://<host da pagina>:3333, valido em
+        # localhost e no acesso por outros dispositivos da rede.
+        NEXT_PUBLIC_API_URL: ""
+    ports:
+      - "3001:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: desafio
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d desafio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+
+  serverest:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npx serverest@latest"
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:
+  chroma-data:
+
