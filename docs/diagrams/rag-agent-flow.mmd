@@ -1,0 +1,23 @@
+flowchart TD
+  A[POST /threads/{id}/messages] --> B[Load thread history]
+  B --> C[OrchestratorAgent]
+  C --> D{Question intent}
+  D -->|retrieval| E[RAGAgent]
+  D -->|comparison summary ranking| F[AnalystAgent]
+  E --> G[search_documents]
+  E --> H[extract_section]
+  F --> I[compare_papers]
+  F --> J[summarize]
+  F --> K[rank_papers]
+  G --> L[(Vector Store)]
+  H --> M[(Parsed Papers)]
+  I --> N[Structured analysis]
+  J --> N
+  K --> N
+  L --> O[Context]
+  M --> O
+  O --> C
+  N --> C
+  C --> P[Final answer with sources]
+  P --> Q[Persist assistant message]
+

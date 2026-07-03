@@ -1,0 +1,17 @@
+flowchart TD
+  A[User opens animes page] --> B[AnimePageTemplate]
+  B --> C[AnimeToolbar]
+  C --> D[Search input]
+  C --> E[Format filter]
+  D --> F[Build AniList variables]
+  E --> F
+  F --> G[AniList GraphQL client]
+  G --> H[Normalize media]
+  H --> I[AnimeGrid]
+  I --> J[AnimeCard]
+  J --> K[ScoreBadge]
+  K --> L{averageScore}
+  L -->|< 50| R[red]
+  L -->|50..80| Y[yellow]
+  L -->|> 80| G2[green]
+

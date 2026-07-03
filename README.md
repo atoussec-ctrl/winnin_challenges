@@ -1,18 +1,180 @@
-Muito Obrigado pelo seu interesse em trabalhar conosco
+# Desafio Winnin - Monorepo TypeScript
 
-# Desafios
+Este repositorio consolida os desafios de Backend, Frontend, Data Science/RAG e QA em uma base TypeScript com Nest.js, Next.js, LangChain.js, LangSmith, Tailwind CSS, shadcn/ui, Atomic Design e Playwright.
 
-* [Frontend](https://github.com/winnin/desafio/blob/master/FRONTEND.md)
-* [Backend](https://github.com/winnin/desafio/blob/master/BACKEND.md)
-* [Quality Assurance (QA)](https://github.com/winnin/desafio/blob/master/QA.md)
+## Documentacao
 
+- [Analise dos documentos originais](docs/00-analise-documentos.md)
+- [Product spec](docs/01-product-spec.md)
+- [Spec to task](docs/02-spec-to-task.md)
+- [Arquitetura](docs/03-architecture.md)
+- [Fluxogramas](docs/04-fluxos.md)
+- [Estrategia de testes](docs/05-test-strategy.md)
+- [Contratos de API](docs/06-api-contracts.md)
+- [Guia de construcao](docs/07-construction-guide.md)
+- [Pesquisa e fontes](docs/08-research.md)
+- [Frontend de pedidos](docs/09-orders-frontend.md)
+- [Observabilidade](docs/10-observability.md)
+- [Plano de IA para produtos](docs/11-product-ai-plan.md)
+- [DevOps: Docker e GitHub Actions](docs/12-devops.md)
+- [ADR 0001 - TypeScript monorepo](docs/adr/0001-typescript-monorepo.md)
 
-# Winnin
+## Estrutura
 
-O Winnin é uma empresa de tecnologia para entretenimento. Nosso objetivo é ajudar marcas a criarem conteúdo melhor para a internet. 
+```text
+apps/
+  api/  Nest.js: GraphQL de pedidos, REST Swagger/OpenAPI para AI/RAG,
+        logs estruturados e metricas Prometheus em /metrics
+  web/  Next.js: animes via AniList e gestao de pedidos em /pedidos
+        (TanStack Query, shadcn-style, Framer Motion, Atomic Design)
+  qa/   Playwright: E2E ge.globo.com e API ServeRest
+packages/
+  domain/    regras puras de pedidos, produtos e usuarios
+  ai-agent/  contratos, tools e agentes RAG
+  shared/    utilitarios compartilhados
+  testing/   builders e helpers de teste
+```
 
-Nosso modelo de negócio é dividido em duas partes, sendo a primeira um SaaS que coleta e analisa dados globais de consumo de vídeo para judar as mentes criativas a criarem conteúdo cada vez mais engajador. Além disso também oferecemos uma consultoria para grandes empresas, onde nossos consultores, utilizando nosso SaaS fazem uma pesquisa mais aprofundada e customizada, e dão uma estratégia de conteúdo a ser implementada pelos nossos clientes.
+## Postman
 
+Importe `postman/collection.json` e `postman/environment.json` para testar todos os
+endpoints (observabilidade, AI/RAG REST e GraphQL de pedidos, incluindo cenarios de
+erro). Via CLI:
 
-Para ter mais informações acesse nosso site: https://winnin.com
+```bash
+npx newman run postman/collection.json -e postman/environment.json
+```
 
+Swagger UI em `http://localhost:3333/docs` (OpenAPI em `/docs-json`).
+
+## Comandos
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm coverage
+pnpm dev
+```
+
+Infra local:
+
+```bash
+make setup
+make test
+make down
+```
+
+## Docker
+
+API e frontend possuem Dockerfiles multi-stage (contexto na raiz do monorepo) e estao no
+`docker-compose.yml` junto da infra:
+
+```bash
+docker compose build api web   # build das imagens
+docker compose up -d api web   # API em :3333 e CRM de pedidos em :3001
+docker compose up -d           # sobe tudo (postgres, chroma, serverest)
+```
+
+Detalhes em [docs/12-devops.md](docs/12-devops.md).
+
+## CI
+
+- `.github/workflows/ci.yml`: em cada push/PR para `master` roda build, typecheck, lint,
+  testes com cobertura minima de 95% e o build das duas imagens Docker (sem push).
+- `.github/workflows/qa.yml`: suite E2E do Playwright (site externo), disparo manual.
+
+## Qualidade
+
+A construcao segue TDD, Clean Code, Clean Architecture, SOLID, DRY, KISS e piramide de testes. Os thresholds configurados para os pacotes iniciados sao de 95% para lines, functions, branches e statements.
+
+## Status da construcao
+
+Ja foram iniciados:
+
+- Documentacao de arquitetura, specs, fluxos, contratos e ADR.
+- Dominio de pedidos com testes para estoque, total, agregacao de itens e rollback.
+- Contratos e tools iniciais de AI/RAG.
+- API Nest.js com GraphQL de pedidos (queries `users`, `products`, `orders` e
+  `User.orders`), validacao de input, erros de dominio traduzidos e REST Swagger
+  para threads/ask.
+- Observabilidade na API: logs estruturados JSON, interceptor de metricas por
+  operacao, `GET /metrics` (Prometheus) e `GET /health` com uptime.
+- Frontend Next.js com AniList e com a pagina `/pedidos` como CRM de pedidos:
+  dashboard responsivo com KPIs animados e graficos Recharts (receita 14 dias,
+  estoque critico, mais vendidos, pedidos por usuario), alem de cadastro e emissao
+  de pedidos com TanStack Query, Framer Motion e Atomic Design.
+- Docker: Dockerfiles multi-stage para API e web, integrados ao `docker-compose.yml`
+  com healthcheck, e workflows de GitHub Actions (CI com cobertura 95% + build das
+  imagens; QA E2E manual).
+- Plano detalhado do agente de IA para o sistema de produtos
+  ([docs/11-product-ai-plan.md](docs/11-product-ai-plan.md)).
+- QA Playwright com BDD, Page Object Model, testes ServeRest com fixtures/cleanup e
+  workflow manual com jobs separados para E2E e API.
+
+## Backend de pedidos: decisoes tecnicas, trade-offs e proximos passos
+
+Detalhamento completo em [docs/03-architecture.md](docs/03-architecture.md).
+
+**Decisoes tecnicas**
+
+- Nest.js + GraphQL code-first (queries `users`/`products`/`orders`, mutations
+  `createUser`/`createProduct`/`createOrder`, field resolver `User.orders`).
+- Regras de negocio centralizadas em `packages/domain` (Clean Architecture):
+  `CreateOrderUseCase` valida estoque, agrega itens repetidos e calcula o total, sem
+  depender de Nest.js nem de um banco especifico (persistencia fica atras de uma porta).
+- Erros de dominio (`INSUFFICIENT_STOCK`, `PRODUCT_NOT_FOUND` etc.) traduzidos para HTTP
+  409/400/404 na borda, mantendo o dominio livre de detalhes de transporte.
+- Logs estruturados JSON e metricas Prometheus via interceptor global (ver
+  [docs/10-observability.md](docs/10-observability.md)).
+
+**Trade-offs assumidos**
+
+- **Persistencia in-memory (`Map`) em vez de Postgres**: o `docker-compose.yml` ja
+  provisiona um servico Postgres, mas a API de pedidos ainda nao le `DATABASE_URL` nem
+  escreve nele. Decisao consciente para priorizar dominio/testes no tempo do desafio.
+  Consequencia pratica: reiniciar a API perde os dados (por isso existe o script de
+  seed de demonstracao).
+- **Lock global em vez de lock por produto**: toda criacao de pedido e serializada por
+  uma fila de promises (mutex do processo), mesmo entre produtos diferentes. Garante
+  corretude de estoque (comprovado em teste de concorrencia real com
+  `Promise.allSettled`, estoque nunca fica negativo) as custas de paralelismo.
+- **Sem paginacao** nas queries `users`/`products`/`orders` — aceitavel no volume do
+  desafio, seria necessario antes de producao.
+- **Sem autenticacao/autorizacao** nas mutations — fora do escopo pedido pelo desafio.
+- **GraphQL expoe `price`/`total` como `Float`**, nao `Decimal` — internamente o dominio
+  usa inteiros (centavos) para evitar erro de ponto flutuante; a conversao para `Float`
+  acontece só na borda de apresentacao.
+
+**Pontos que faria diferente com mais tempo**
+
+- Trocar o repositorio in-memory por um adapter Postgres (Prisma ou TypeORM) com lock
+  por linha (`SELECT ... FOR UPDATE`) no lugar do mutex global, reaproveitando a mesma
+  porta de unit-of-work ja definida no dominio (a camada de aplicacao nao precisaria
+  mudar).
+- Adicionar um `orders.repository.spec.ts` dedicado testando o rollback apos uma
+  escrita parcial contra o repositorio real (hoje esse cenario so e coberto contra um
+  duplo de teste no dominio).
+- Paginacao cursor-based nas queries de listagem.
+
+## Limitacoes conhecidas
+
+- **AI/RAG (`packages/ai-agent` + `apps/api/src/modules/ai`)**: os contratos, as
+  classes de tool/agent e as rotas REST (`/threads`, `/threads/{id}/messages`, `/ask`)
+  estao implementados e testados, mas atras de portas cuja unica implementacao hoje e um
+  fake (mesma classe usada em producao e nos testes). Nao ha, ainda: download/parsing
+  real dos PDFs do arXiv, client real de vector store (ChromaDB), chamada real a um LLM
+  em nenhuma tool, decisao de roteamento por function calling (hoje e `if/else` por
+  palavra-chave) e persistencia de threads em SQLite (hoje e um `Map` em memoria,
+  perdido a cada reinicio). Detalhamento completo do que falta em
+  [docs/03-architecture.md](docs/03-architecture.md#airag). Por que nao foi concluido:
+  o desafio de IA/RAG e por si so um segundo desafio completo (multi-agente, ingestao,
+  vector store, LLM), e o tempo do ciclo atual priorizou fechar com qualidade os
+  desafios de Backend, Frontend e QA; a base de contratos/rotas ja deixada facilita
+  plugar os adapters reais depois sem redesenhar a arquitetura.
+- **Dark mode do frontend de animes**: o design system ja tem paleta escura pronta
+  (`app/globals.css`, `dark:` no Tailwind), mas nao ha `ThemeProvider` nem alternador —
+  a funcionalidade nao e alcancavel pelo usuario final ainda.
+- **Fidelidade ao Figma do desafio de Frontend**: sem acesso local ao arquivo exportado,
+  a implementacao seguiu a especificacao textual (busca, filtro, cor do score) sem
+  garantia de fidelidade pixel-a-pixel ao design original.

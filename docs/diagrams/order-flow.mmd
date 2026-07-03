@@ -1,0 +1,23 @@
+sequenceDiagram
+  participant Client
+  participant Resolver as GraphQL Resolver
+  participant UseCase as CreateOrderUseCase
+  participant Uow as UnitOfWork
+  participant Repo as Product/Order Repository
+  participant DB as Database
+
+  Client->>Resolver: createOrder(input)
+  Resolver->>UseCase: execute(command)
+  UseCase->>Uow: transaction(callback)
+  Uow->>Repo: findProductsForUpdate(ids)
+  Repo->>DB: SELECT ... FOR UPDATE
+  DB-->>Repo: products locked
+  Repo-->>UseCase: products
+  UseCase->>UseCase: validate stock and calculate total
+  UseCase->>Repo: saveOrder(order)
+  UseCase->>Repo: decrementStock(items)
+  Repo->>DB: INSERT order/items + UPDATE stock
+  Uow-->>UseCase: commit
+  UseCase-->>Resolver: order
+  Resolver-->>Client: order payload
+

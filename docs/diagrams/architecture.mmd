@@ -1,0 +1,38 @@
+flowchart LR
+  subgraph Apps
+    Web[apps/web Next.js]
+    Api[apps/api Nest.js]
+    QA[apps/qa Playwright]
+  end
+
+  subgraph Packages
+    Domain[packages/domain]
+    AiAgent[packages/ai-agent]
+    Shared[packages/shared]
+    Testing[packages/testing]
+  end
+
+  subgraph Infra
+    Postgres[(PostgreSQL)]
+    SQLite[(SQLite)]
+    Chroma[(ChromaDB)]
+    AniList[AniList GraphQL]
+    LangSmith[LangSmith]
+    ServeRest[ServeRest]
+  end
+
+  Web --> AniList
+  Web --> Shared
+  Api --> Domain
+  Api --> AiAgent
+  Api --> Shared
+  Api --> Postgres
+  Api --> SQLite
+  AiAgent --> Chroma
+  AiAgent --> LangSmith
+  QA --> Web
+  QA --> Api
+  QA --> ServeRest
+  Testing --> Domain
+  Testing --> AiAgent
+
