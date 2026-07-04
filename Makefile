@@ -1,4 +1,4 @@
-.PHONY: setup run test down coverage
+.PHONY: setup run start seed test coverage down
 
 setup:
 	pnpm install
@@ -6,6 +6,14 @@ setup:
 
 run:
 	pnpm dev
+
+# Sobe api, web, postgres, chroma e serverest via docker-compose, com health
+# checks reais e seed de dados de demonstracao. Equivalente a scripts/start.sh.
+start:
+	bash scripts/start.sh
+
+seed:
+	node scripts/seed.mjs
 
 test:
 	pnpm test
