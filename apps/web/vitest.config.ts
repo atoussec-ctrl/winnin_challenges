@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     coverage: {
       all: true,
-      include: ["lib/**/*.ts"],
+      include: ["hooks/**/*.ts", "lib/**/*.ts"],
       provider: "v8",
       thresholds: {
         branches: 95,

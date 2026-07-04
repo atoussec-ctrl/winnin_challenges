@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useState, type FormEvent } from "react";
+import { useEntityFormSubmit } from "../../hooks/use-entity-form-submit";
 import { formatCurrencyBRL } from "../../lib/money";
 import {
   addDraftItem,
@@ -29,15 +30,14 @@ export interface CreateOrderCardProps {
 
 export function CreateOrderCard({ form, products, users }: CreateOrderCardProps) {
   const [items, setItems] = useState<readonly OrderDraftItem[]>(() => [createDraftItem()]);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [userId, setUserId] = useState("");
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const { submit, successMessage } = useEntityFormSubmit(form, "Pedido criado com sucesso.");
 
   const total = calculateDraftTotal(items, products);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    setSuccessMessage(null);
 
     const validationErrors = validateOrderDraft(userId, items);
 
@@ -48,16 +48,16 @@ export function CreateOrderCard({ form, products, users }: CreateOrderCardProps)
 
     setValidationMessage(null);
 
-    const created = await form.submit({
-      items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
-      userId
-    });
-
-    if (created) {
-      setItems([createDraftItem()]);
-      setUserId("");
-      setSuccessMessage("Pedido criado com sucesso.");
-    }
+    await submit(
+      {
+        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        userId
+      },
+      () => {
+        setItems([createDraftItem()]);
+        setUserId("");
+      }
+    );
   }
 
   return (
