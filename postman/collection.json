@@ -402,7 +402,8 @@
                 "exec": [
                   "pm.test('erro de validacao', () => {",
                   "  const errors = pm.response.json().errors;",
-                  "  pm.expect(errors[0].message).to.include('User name is required');",
+                  "  const details = errors[0].extensions.originalError.message.join(' ');",
+                  "  pm.expect(details).to.include('User name is required');",
                   "});"
                 ]
               }
@@ -458,7 +459,8 @@
                 "exec": [
                   "pm.test('erro de validacao de produto', () => {",
                   "  const errors = pm.response.json().errors;",
-                  "  pm.expect(errors[0].message).to.include('Product price must be greater than zero');",
+                  "  const details = errors[0].extensions.originalError.message.join(' ');",
+                  "  pm.expect(details).to.include('Product price must be greater than zero');",
                   "});"
                 ]
               }
@@ -542,7 +544,8 @@
                 "exec": [
                   "pm.test('teto de quantidade', () => {",
                   "  const errors = pm.response.json().errors;",
-                  "  pm.expect(errors[0].message).to.include('between 1 and 10000');",
+                  "  const details = errors[0].extensions.originalError.message.join(' ');",
+                  "  pm.expect(details).to.include('between 1 and 10000');",
                   "});"
                 ]
               }
