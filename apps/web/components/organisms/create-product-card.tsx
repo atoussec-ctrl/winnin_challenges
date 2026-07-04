@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useEntityFormSubmit } from "../../hooks/use-entity-form-submit";
 import type { CreateProductRequest } from "../../lib/orders";
 import { Button } from "../atoms/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../atoms/card";
@@ -15,24 +16,22 @@ export function CreateProductCard({
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { submit, successMessage } = useEntityFormSubmit(form, "Produto criado com sucesso.");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    setSuccessMessage(null);
-
-    const created = await form.submit({
-      name,
-      price: Number(price),
-      stock: Number(stock)
-    });
-
-    if (created) {
-      setName("");
-      setPrice("");
-      setStock("");
-      setSuccessMessage("Produto criado com sucesso.");
-    }
+    await submit(
+      {
+        name,
+        price: Number(price),
+        stock: Number(stock)
+      },
+      () => {
+        setName("");
+        setPrice("");
+        setStock("");
+      }
+    );
   }
 
   return (

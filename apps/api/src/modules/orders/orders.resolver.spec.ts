@@ -1,10 +1,23 @@
+import { CreateOrderUseCase } from "@desafio/domain";
 import { describe, expect, it } from "vitest";
-import { InMemoryOrdersRepository } from "./orders.repository";
+import { OrderUnitOfWork } from "./order-unit-of-work";
+import { OrdersRepository } from "./orders.repository";
 import { OrdersResolver } from "./orders.resolver";
 import { OrdersService } from "./orders.service";
+import { ProductsRepository } from "./products.repository";
+import { UsersRepository } from "./users.repository";
 
 function createResolver(): OrdersResolver {
-  return new OrdersResolver(new OrdersService(new InMemoryOrdersRepository()));
+  const products = new ProductsRepository();
+  const orders = new OrdersRepository();
+  const service = new OrdersService(
+    new UsersRepository(),
+    products,
+    orders,
+    new CreateOrderUseCase(new OrderUnitOfWork(products, orders))
+  );
+
+  return new OrdersResolver(service);
 }
 
 describe("OrdersResolver", () => {

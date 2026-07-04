@@ -1,10 +1,34 @@
-import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
+import { ConflictException } from "@nestjs/common";
+import {
+  CreateOrderUseCase,
+  InsufficientStockError,
+  ProductNotFoundError,
+  ValidationDomainError,
+  type OrderUnitOfWorkPort
+} from "@desafio/domain";
 import { describe, expect, it } from "vitest";
-import { InMemoryOrdersRepository } from "./orders.repository";
+import { OrderUnitOfWork } from "./order-unit-of-work";
+import { OrdersRepository } from "./orders.repository";
 import { OrdersService } from "./orders.service";
+import { ProductsRepository } from "./products.repository";
+import type {
+  OrdersRepositoryPort,
+  ProductsRepositoryPort,
+  StoredProduct,
+  StoredUser,
+  UsersRepositoryPort
+} from "./repository.ports";
+import { UsersRepository } from "./users.repository";
 
 function createService(): OrdersService {
-  return new OrdersService(new InMemoryOrdersRepository());
+  const products = new ProductsRepository();
+  const orders = new OrdersRepository();
+  return new OrdersService(
+    new UsersRepository(),
+    products,
+    orders,
+    new CreateOrderUseCase(new OrderUnitOfWork(products, orders))
+  );
 }
 
 describe("OrdersService", () => {
@@ -51,29 +75,12 @@ describe("OrdersService", () => {
     expect(service.listOrdersByUserId(secondUser.id)[0]?.total).toBe(200);
   });
 
-  it("rejects users with invalid input", () => {
-    const service = createService();
-
-    expect(() => service.createUser({ email: "invalid", name: " " })).toThrow(BadRequestException);
-    expect(() => service.createUser({ email: "invalid", name: " " })).toThrow(
-      "User name is required. User email format is invalid."
-    );
-  });
-
   it("rejects duplicated emails ignoring case", () => {
     const service = createService();
     service.createUser({ email: "user@example.com", name: "User" });
 
     expect(() => service.createUser({ email: "USER@example.com", name: "Other" })).toThrow(
       ConflictException
-    );
-  });
-
-  it("rejects products with invalid input", () => {
-    const service = createService();
-
-    expect(() => service.createProduct({ name: "", price: -1, stock: -2 })).toThrow(
-      BadRequestException
     );
   });
 
@@ -89,6 +96,9 @@ describe("OrdersService", () => {
   });
 
   it("rejects orders with missing products and keeps product stock unchanged", async () => {
+    // A traducao para NotFoundException e responsabilidade do DomainErrorFilter
+    // global (ver domain-error.filter.spec.ts); aqui o service so precisa
+    // deixar o erro de dominio passar intacto.
     const service = createService();
     const user = service.createUser({
       email: "user@example.com",
@@ -100,7 +110,7 @@ describe("OrdersService", () => {
         items: [{ productId: "missing", quantity: 1 }],
         userId: user.id
       })
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(ProductNotFoundError);
 
     expect(service.listProducts()).toEqual([]);
   });
@@ -121,18 +131,6 @@ describe("OrdersService", () => {
     expect(service.listOrders()).toHaveLength(1);
   });
 
-  it("rejects orders with out-of-bounds quantities before touching the domain", async () => {
-    const service = createService();
-    const user = service.createUser({ email: "user@example.com", name: "User" });
-
-    await expect(
-      service.createOrder({
-        items: [{ productId: "product-1", quantity: 10_001 }],
-        userId: user.id
-      })
-    ).rejects.toThrow(BadRequestException);
-  });
-
   it("rejects orders with insufficient stock and rolls back state", async () => {
     const service = createService();
     const user = service.createUser({
@@ -150,12 +148,12 @@ describe("OrdersService", () => {
         items: [{ productId: product.id, quantity: 2 }],
         userId: user.id
       })
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(InsufficientStockError);
 
     expect(service.listProducts()[0]?.stock).toBe(1);
   });
 
-  it("translates domain validation errors into bad requests", async () => {
+  it("propagates domain validation errors unchanged", async () => {
     const service = createService();
     const user = service.createUser({
       email: "user@example.com",
@@ -167,15 +165,64 @@ describe("OrdersService", () => {
         items: [],
         userId: user.id
       })
-    ).rejects.toThrow(BadRequestException);
+    ).rejects.toThrow(ValidationDomainError);
+  });
+
+  it("depends only on the repository ports, not on their concrete classes", () => {
+    // Fakes minimos que satisfazem as portas mas NAO sao instancias de
+    // UsersRepository/ProductsRepository/OrdersRepository (sem os campos
+    // privados delas) - so compila se OrdersService aceitar a interface.
+    const fakeUser: StoredUser = {
+      createdAt: new Date("2026-07-03T00:00:00.000Z"),
+      email: "fake@example.com",
+      id: "user-1",
+      name: "Fake"
+    };
+    const users: UsersRepositoryPort = {
+      findUserById: (userId) => (userId === fakeUser.id ? fakeUser : undefined),
+      hasUserWithEmail: () => false,
+      listUsers: () => [fakeUser],
+      saveUser: () => fakeUser
+    };
+    const products: ProductsRepositoryPort = {
+      findProductById: () => undefined,
+      listProducts: () => [],
+      saveProduct: (input): StoredProduct => ({
+        createdAt: new Date("2026-07-03T00:00:00.000Z"),
+        id: "product-1",
+        ...input
+      })
+    };
+    const orders: OrdersRepositoryPort = {
+      listOrders: () => [],
+      listOrdersByUserId: () => []
+    };
+    const service = new OrdersService(
+      users,
+      products,
+      orders,
+      new CreateOrderUseCase(new OrderUnitOfWork(new ProductsRepository(), new OrdersRepository()))
+    );
+
+    expect(service.listUsers()).toEqual([
+      { createdAt: fakeUser.createdAt, email: fakeUser.email, id: fakeUser.id, name: fakeUser.name }
+    ]);
+    expect(service.listProducts()).toEqual([]);
+    expect(service.listOrders()).toEqual([]);
   });
 
   it("rethrows unknown errors from the unit of work untouched", async () => {
-    const repository = new InMemoryOrdersRepository();
-    const service = new OrdersService(repository);
-    const user = service.createUser({ email: "user@example.com", name: "User" });
     const failure = new Error("infrastructure exploded");
-    repository.unitOfWork.execute = () => Promise.reject(failure);
+    const brokenUnitOfWork: OrderUnitOfWorkPort = {
+      execute: () => Promise.reject(failure)
+    };
+    const service = new OrdersService(
+      new UsersRepository(),
+      new ProductsRepository(),
+      new OrdersRepository(),
+      new CreateOrderUseCase(brokenUnitOfWork)
+    );
+    const user = service.createUser({ email: "user@example.com", name: "User" });
 
     await expect(
       service.createOrder({

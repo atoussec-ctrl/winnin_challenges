@@ -1,4 +1,21 @@
 import { Field, Float, ID, InputType, Int, ObjectType } from "@nestjs/graphql";
+import { Transform, Type } from "class-transformer";
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsEmail,
+  IsInt,
+  IsNotEmpty,
+  IsPositive,
+  Max,
+  Min,
+  ValidateNested
+} from "class-validator";
+
+const MAX_PRICE = 1_000_000_000;
+const MAX_STOCK = 1_000_000;
+const MAX_ORDER_ITEMS = 100;
+const MAX_ITEM_QUANTITY = 10_000;
 
 @ObjectType("User")
 export class UserModel {
@@ -63,42 +80,71 @@ export class OrderModel {
   public createdAt!: Date;
 }
 
+function trimIfString({ value }: { value: unknown }): unknown {
+  return typeof value === "string" ? value.trim() : value;
+}
+
 @InputType()
 export class CreateUserInput {
   @Field()
+  @Transform(trimIfString)
+  @IsNotEmpty({ message: "User name is required." })
   public name!: string;
 
   @Field()
+  @IsEmail({}, { message: "User email format is invalid." })
   public email!: string;
 }
 
 @InputType()
 export class CreateProductInput {
   @Field()
+  @Transform(trimIfString)
+  @IsNotEmpty({ message: "Product name is required." })
   public name!: string;
 
   @Field(() => Float)
+  @IsPositive({ message: `Product price must be greater than zero and at most ${MAX_PRICE}.` })
+  @Max(MAX_PRICE, { message: `Product price must be greater than zero and at most ${MAX_PRICE}.` })
   public price!: number;
 
   @Field(() => Int)
+  @IsInt({ message: `Product stock must be an integer between zero and ${MAX_STOCK}.` })
+  @Min(0, { message: `Product stock must be an integer between zero and ${MAX_STOCK}.` })
+  @Max(MAX_STOCK, { message: `Product stock must be an integer between zero and ${MAX_STOCK}.` })
   public stock!: number;
 }
 
 @InputType()
 export class CreateOrderItemInput {
   @Field(() => ID)
+  @Transform(trimIfString)
+  @IsNotEmpty({ message: "Product id is required." })
   public productId!: string;
 
   @Field(() => Int)
+  @IsInt({ message: `Item quantity must be an integer between 1 and ${MAX_ITEM_QUANTITY}.` })
+  @Min(1, { message: `Item quantity must be an integer between 1 and ${MAX_ITEM_QUANTITY}.` })
+  @Max(MAX_ITEM_QUANTITY, {
+    message: `Item quantity must be an integer between 1 and ${MAX_ITEM_QUANTITY}.`
+  })
   public quantity!: number;
 }
 
 @InputType()
 export class CreateOrderInput {
   @Field(() => ID)
+  @Transform(trimIfString)
+  @IsNotEmpty({ message: "User id is required." })
   public userId!: string;
 
   @Field(() => [CreateOrderItemInput])
+  @ArrayMinSize(1, { message: `Order must contain between 1 and ${MAX_ORDER_ITEMS} items.` })
+  @ArrayMaxSize(MAX_ORDER_ITEMS, {
+    message: `Order must contain between 1 and ${MAX_ORDER_ITEMS} items.`
+  })
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemInput)
   public items!: CreateOrderItemInput[];
 }
 

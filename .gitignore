@@ -10,3 +10,4 @@ test-results/
 .env.local
 data/
 *.log
+*.tsbuildinfo

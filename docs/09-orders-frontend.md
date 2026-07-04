@@ -29,6 +29,9 @@ components/
                create-order-card, users-panel, catalog-panel, orders-panel,
                revenue-chart, stock-chart, top-products-chart, users-orders-chart
   templates/   orders-page-template (unico dono do TanStack Query)
+hooks/
+  use-entity-form-submit.ts  estado de sucesso + reset de campos, compartilhado
+                              pelos 3 cards de cadastro
 lib/
   orders.ts       client GraphQL tipado (users, products, orders, mutations)
   order-draft.ts  regras puras do rascunho de pedido (itens, total, validacao)
@@ -70,6 +73,11 @@ lib/
 - Organisms de formulario recebem um contrato estreito `FormSubmitState<TInput>`
   (`submit`, `isPending`, `errorMessage`) e mantem apenas estado local de campos —
   ISP/DIP aplicados na UI.
+- O hook `useEntityFormSubmit` (DRY) encapsula o padrao repetido nos 3 cards de
+  cadastro: zera a mensagem de sucesso, chama `form.submit`, e so entao roda o
+  callback de reset de campos e mostra a mensagem de sucesso, se o backend aceitou o
+  input. `CreateOrderCard` mantem sua validacao client-side (`validateOrderDraft`)
+  antes de chamar o hook, ja que precisa poder rejeitar o envio sem tocar no backend.
 - Regras de rascunho de pedido (agregacao, total estimado, validacao) vivem em
   `lib/order-draft.ts` como funcoes puras com testes unitarios.
 - Erros do GraphQL chegam como mensagens do backend (validacao, email duplicado, estoque
@@ -90,7 +98,10 @@ lib/
   base URL configuravel e derivada do host da pagina), `lib/api-base-url.test.ts`,
   `lib/order-draft.test.ts`, `lib/analytics.test.ts`, `lib/format.test.ts`,
   `lib/money.test.ts`, `lib/stock.test.ts`.
-- Cobertura de `lib/**` com gate de 95% (100% atual).
-- Componentes seguem o padrao do projeto: logica extraida para `lib` puro e testado;
-  proximos passos incluem Testing Library para organisms e um E2E Playwright do fluxo
-  criar usuario -> produto -> pedido.
+- `hooks/use-entity-form-submit.spec.ts` usa `@testing-library/react`
+  (`renderHook`/`act`) — primeiro teste de um hook React no projeto; abre caminho
+  para testar outros hooks sem precisar montar componentes inteiros.
+- Cobertura de `lib/**` e `hooks/**` com gate de 95% (100% atual).
+- Componentes seguem o padrao do projeto: logica extraida para `lib`/`hooks` puros e
+  testados; proximos passos incluem Testing Library para organisms (renderizacao) e
+  um E2E Playwright do fluxo criar usuario -> produto -> pedido.

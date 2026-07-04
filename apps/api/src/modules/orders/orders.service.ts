@@ -1,16 +1,5 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException
-} from "@nestjs/common";
-import {
-  CreateOrderUseCase,
-  DomainError,
-  InsufficientStockError,
-  type Order,
-  ProductNotFoundError
-} from "@desafio/domain";
+import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { CreateOrderUseCase, type Order } from "@desafio/domain";
 import type {
   CreateOrderInput,
   CreateProductInput,
@@ -20,53 +9,48 @@ import type {
   UserModel
 } from "./order.models";
 import {
-  InMemoryOrdersRepository,
+  ORDERS_REPOSITORY,
+  PRODUCTS_REPOSITORY,
+  USERS_REPOSITORY,
+  type OrdersRepositoryPort,
+  type ProductsRepositoryPort,
   type StoredProduct,
-  type StoredUser
-} from "./orders.repository";
-import {
-  validateCreateOrderInput,
-  validateCreateProductInput,
-  validateCreateUserInput
-} from "./orders.validation";
+  type StoredUser,
+  type UsersRepositoryPort
+} from "./repository.ports";
 
 @Injectable()
 export class OrdersService {
-  private readonly createOrderUseCase: CreateOrderUseCase;
-
-  public constructor(private readonly repository: InMemoryOrdersRepository) {
-    this.createOrderUseCase = new CreateOrderUseCase(repository.unitOfWork);
-  }
+  public constructor(
+    @Inject(USERS_REPOSITORY) private readonly users: UsersRepositoryPort,
+    @Inject(PRODUCTS_REPOSITORY) private readonly products: ProductsRepositoryPort,
+    @Inject(ORDERS_REPOSITORY) private readonly orders: OrdersRepositoryPort,
+    private readonly createOrderUseCase: CreateOrderUseCase
+  ) {}
 
   public listUsers(): UserModel[] {
-    return this.repository.listUsers().map((user) => this.toUserModel(user));
+    return this.users.listUsers().map((user) => this.toUserModel(user));
   }
 
   public listProducts(): ProductModel[] {
-    return this.repository.listProducts().map((product) => this.toProductModel(product));
+    return this.products.listProducts().map((product) => this.toProductModel(product));
   }
 
   public listOrders(): OrderModel[] {
-    return this.repository.listOrders().map((order) => this.toOrderModel(order));
+    return this.orders.listOrders().map((order) => this.toOrderModel(order));
   }
 
   public listOrdersByUserId(userId: string): OrderModel[] {
-    return this.repository.listOrdersByUserId(userId).map((order) => this.toOrderModel(order));
+    return this.orders.listOrdersByUserId(userId).map((order) => this.toOrderModel(order));
   }
 
   public createUser(input: CreateUserInput): UserModel {
-    const errors = validateCreateUserInput(input);
-
-    if (errors.length > 0) {
-      throw new BadRequestException(errors.join(" "));
-    }
-
-    if (this.repository.hasUserWithEmail(input.email)) {
+    if (this.users.hasUserWithEmail(input.email)) {
       throw new ConflictException(`Email ${input.email} is already in use.`);
     }
 
     return this.toUserModel(
-      this.repository.saveUser({
+      this.users.saveUser({
         email: input.email.trim(),
         name: input.name.trim()
       })
@@ -74,14 +58,8 @@ export class OrdersService {
   }
 
   public createProduct(input: CreateProductInput): ProductModel {
-    const errors = validateCreateProductInput(input);
-
-    if (errors.length > 0) {
-      throw new BadRequestException(errors.join(" "));
-    }
-
     return this.toProductModel(
-      this.repository.saveProduct({
+      this.products.saveProduct({
         name: input.name.trim(),
         priceCents: Math.round(input.price * 100),
         stock: input.stock
@@ -90,40 +68,16 @@ export class OrdersService {
   }
 
   public async createOrder(input: CreateOrderInput): Promise<OrderModel> {
-    const errors = validateCreateOrderInput(input);
-
-    if (errors.length > 0) {
-      throw new BadRequestException(errors.join(" "));
-    }
-
-    const user = this.repository.findUserById(input.userId);
+    const user = this.users.findUserById(input.userId);
 
     if (!user) {
       throw new NotFoundException(`User ${input.userId} was not found.`);
     }
 
-    try {
-      const order = await this.createOrderUseCase.execute(input);
-      return this.toOrderModel(order);
-    } catch (error) {
-      throw this.translateDomainError(error);
-    }
-  }
-
-  private translateDomainError(error: unknown): unknown {
-    if (error instanceof ProductNotFoundError) {
-      return new NotFoundException(error.message);
-    }
-
-    if (error instanceof InsufficientStockError) {
-      return new ConflictException(error.message);
-    }
-
-    if (error instanceof DomainError) {
-      return new BadRequestException(error.message);
-    }
-
-    return error;
+    // Erros de dominio (estoque insuficiente, produto inexistente etc.) sao
+    // traduzidos globalmente pelo DomainErrorFilter (APP_FILTER), nao aqui.
+    const order = await this.createOrderUseCase.execute(input);
+    return this.toOrderModel(order);
   }
 
   private toUserModel(user: StoredUser): UserModel {
@@ -146,7 +100,7 @@ export class OrdersService {
   }
 
   private toOrderModel(order: Order): OrderModel {
-    const user = this.repository.findUserById(order.userId);
+    const user = this.users.findUserById(order.userId);
 
     if (!user) {
       throw new NotFoundException(`User ${order.userId} was not found.`);
@@ -156,7 +110,7 @@ export class OrdersService {
       createdAt: order.createdAt,
       id: order.id,
       items: order.items.map((item) => {
-        const product = this.repository.findProductById(item.productId);
+        const product = this.products.findProductById(item.productId);
 
         if (!product) {
           throw new NotFoundException(`Product ${item.productId} was not found.`);

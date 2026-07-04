@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useEntityFormSubmit } from "../../hooks/use-entity-form-submit";
 import type { CreateUserRequest } from "../../lib/orders";
 import { Button } from "../atoms/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../atoms/card";
@@ -12,19 +13,14 @@ import type { FormSubmitState } from "./form-contract";
 export function CreateUserCard({ form }: Readonly<{ form: FormSubmitState<CreateUserRequest> }>) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { submit, successMessage } = useEntityFormSubmit(form, "Usuario criado com sucesso.");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    setSuccessMessage(null);
-
-    const created = await form.submit({ email, name });
-
-    if (created) {
+    await submit({ email, name }, () => {
       setEmail("");
       setName("");
-      setSuccessMessage("Usuario criado com sucesso.");
-    }
+    });
   }
 
   return (

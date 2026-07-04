@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
@@ -8,6 +9,9 @@ async function bootstrap(): Promise<void> {
   const logger = new StructuredLogger();
   const app = await NestFactory.create(AppModule, { logger });
   app.enableCors();
+  // Validacao declarativa dos DTOs (class-validator) para GraphQL e REST;
+  // substitui a validacao manual que existia dentro dos services.
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle("Desafio Winnin API")
