@@ -1,10 +1,21 @@
 import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
+import { CreateOrderUseCase, type OrderUnitOfWorkPort } from "@desafio/domain";
 import { describe, expect, it } from "vitest";
-import { InMemoryOrdersRepository } from "./orders.repository";
+import { OrderUnitOfWork } from "./order-unit-of-work";
+import { OrdersRepository } from "./orders.repository";
 import { OrdersService } from "./orders.service";
+import { ProductsRepository } from "./products.repository";
+import { UsersRepository } from "./users.repository";
 
 function createService(): OrdersService {
-  return new OrdersService(new InMemoryOrdersRepository());
+  const products = new ProductsRepository();
+  const orders = new OrdersRepository();
+  return new OrdersService(
+    new UsersRepository(),
+    products,
+    orders,
+    new CreateOrderUseCase(new OrderUnitOfWork(products, orders))
+  );
 }
 
 describe("OrdersService", () => {
@@ -51,29 +62,12 @@ describe("OrdersService", () => {
     expect(service.listOrdersByUserId(secondUser.id)[0]?.total).toBe(200);
   });
 
-  it("rejects users with invalid input", () => {
-    const service = createService();
-
-    expect(() => service.createUser({ email: "invalid", name: " " })).toThrow(BadRequestException);
-    expect(() => service.createUser({ email: "invalid", name: " " })).toThrow(
-      "User name is required. User email format is invalid."
-    );
-  });
-
   it("rejects duplicated emails ignoring case", () => {
     const service = createService();
     service.createUser({ email: "user@example.com", name: "User" });
 
     expect(() => service.createUser({ email: "USER@example.com", name: "Other" })).toThrow(
       ConflictException
-    );
-  });
-
-  it("rejects products with invalid input", () => {
-    const service = createService();
-
-    expect(() => service.createProduct({ name: "", price: -1, stock: -2 })).toThrow(
-      BadRequestException
     );
   });
 
@@ -121,18 +115,6 @@ describe("OrdersService", () => {
     expect(service.listOrders()).toHaveLength(1);
   });
 
-  it("rejects orders with out-of-bounds quantities before touching the domain", async () => {
-    const service = createService();
-    const user = service.createUser({ email: "user@example.com", name: "User" });
-
-    await expect(
-      service.createOrder({
-        items: [{ productId: "product-1", quantity: 10_001 }],
-        userId: user.id
-      })
-    ).rejects.toThrow(BadRequestException);
-  });
-
   it("rejects orders with insufficient stock and rolls back state", async () => {
     const service = createService();
     const user = service.createUser({
@@ -171,11 +153,17 @@ describe("OrdersService", () => {
   });
 
   it("rethrows unknown errors from the unit of work untouched", async () => {
-    const repository = new InMemoryOrdersRepository();
-    const service = new OrdersService(repository);
-    const user = service.createUser({ email: "user@example.com", name: "User" });
     const failure = new Error("infrastructure exploded");
-    repository.unitOfWork.execute = () => Promise.reject(failure);
+    const brokenUnitOfWork: OrderUnitOfWorkPort = {
+      execute: () => Promise.reject(failure)
+    };
+    const service = new OrdersService(
+      new UsersRepository(),
+      new ProductsRepository(),
+      new OrdersRepository(),
+      new CreateOrderUseCase(brokenUnitOfWork)
+    );
+    const user = service.createUser({ email: "user@example.com", name: "User" });
 
     await expect(
       service.createOrder({

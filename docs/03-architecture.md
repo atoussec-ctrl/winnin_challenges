@@ -81,6 +81,49 @@ troca de paralelismo — dois pedidos de produtos totalmente diferentes tambem s
 serializados entre si. Aceitavel no volume de um desafio; a evolucao natural e lock por
 produto ao trocar para um adapter Postgres.
 
+### Validacao de entrada: class-validator nos DTOs, nao validacao manual no service
+
+Os `InputType` do GraphQL (`order.models.ts`) sao decorados com `class-validator`
+(`@IsEmail`, `@IsNotEmpty`, `@Min`/`@Max`, `@ArrayMinSize`, `@ValidateNested` nos itens do
+pedido) e um `ValidationPipe` global (`main.ts`, `transform: true`) os aplica antes de
+qualquer resolver rodar — para GraphQL e REST igualmente, sem codigo extra por rota.
+
+Antes, `OrdersService.createUser/createProduct/createOrder` chamavam manualmente
+`validateCreateUserInput`/`validateCreateProductInput`/`validateCreateOrderInput`
+(`orders.validation.ts`) e repetiam `if (errors.length > 0) throw new
+BadRequestException(...)` nos tres metodos — a mesma regra escrita e testada em dois
+lugares (o array de validacao e, para "pelo menos 1 item", tambem no dominio).
+
+### Repositorio in-memory: uma classe por agregado, unit of work dedicada
+
+O antigo `InMemoryOrdersRepository` guardava usuarios, produtos e a unit-of-work de
+pedidos na mesma classe — tres agregados sem relacao direta, violando SRP. Agora sao
+quatro classes focadas, todas em `apps/api/src/modules/orders/`:
+
+- `UsersRepository` — CRUD de usuarios.
+- `ProductsRepository` — CRUD de produtos e implementa `ProductInventoryPort`
+  diretamente (a mesma classe injetavel no Nest JA E a porta que o dominio consome,
+  sem precisar de um adapter literal criado a cada transacao).
+- `OrdersRepository` — armazenamento de pedidos e implementa `OrderWriterPort`.
+- `OrderUnitOfWork` — so cuida da transacao (mutex de fila + snapshot/rollback),
+  compondo as duas repositorios acima via injecao de construtor.
+
+Cada uma tem seu proprio spec dedicado, incluindo dois testes que nao existiam antes:
+`OrderUnitOfWork` agora tem um teste de rollback que aplica um debito de estoque real
+via `ProductsRepository`, forca uma falha depois, e confirma que o estoque volta ao
+valor original — cobrindo o cenario de "falha apos escrita parcial" que so era testado
+contra um duplo de teste no dominio, nunca contra o repositorio de producao.
+
+Trade-off: a normalizacao de texto (trim de nome/id) que antes acontecia dentro do
+service agora acontece no `@Transform` do DTO, antes da validacao rodar — o service
+recebe o dado ja limpo. Isso move a responsabilidade de "o dado esta bem formado" para a
+borda (Presentation), deixando o service livre para orquestrar e o dominio livre para
+proteger apenas as invariantes de negocio (estoque, agregacao de itens) que nao fazem
+sentido fora dele. A verificacao de que o `ValidationPipe` esta de fato registrado no
+bootstrap foi feita manualmente (requisicao GraphQL real com payload invalido), pois
+`main.ts` fica fora do escopo de teste automatizado do projeto (mesma convencao ja
+aplicada a `app.module.ts`).
+
 ## AI/RAG
 
 Tecnologia planejada (dependencias ja em `packages/ai-agent/package.json`, ainda nao
