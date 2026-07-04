@@ -68,7 +68,24 @@ make down
 ## Docker
 
 API e frontend possuem Dockerfiles multi-stage (contexto na raiz do monorepo) e estao no
-`docker-compose.yml` junto da infra:
+`docker-compose.yml` junto da infra (postgres, chroma, serverest).
+
+**Um comando so** — builda, sobe os 5 servicos, espera cada um responder de verdade
+(nao so o status do Docker) e popula usuarios/produtos/pedidos de demonstracao:
+
+```powershell
+./scripts/start.ps1          # Windows
+```
+
+```bash
+./scripts/start.sh           # Linux/macOS/WSL/Git Bash
+```
+
+Flags: `-Rebuild`/`--rebuild` (build sem cache), `-NoSeed`/`--no-seed` (pula o seed).
+Popular os dados de novo a qualquer momento (a API guarda tudo em memoria, entao perde
+os dados a cada restart): `node scripts/seed.mjs`.
+
+Comandos manuais equivalentes:
 
 ```bash
 docker compose build api web   # build das imagens
@@ -151,11 +168,16 @@ Detalhamento completo em [docs/03-architecture.md](docs/03-architecture.md).
 - Trocar o repositorio in-memory por um adapter Postgres (Prisma ou TypeORM) com lock
   por linha (`SELECT ... FOR UPDATE`) no lugar do mutex global, reaproveitando a mesma
   porta de unit-of-work ja definida no dominio (a camada de aplicacao nao precisaria
-  mudar).
-- Adicionar um `orders.repository.spec.ts` dedicado testando o rollback apos uma
-  escrita parcial contra o repositorio real (hoje esse cenario so e coberto contra um
-  duplo de teste no dominio).
+  mudar) — a base ja esta pronta para isso: `OrdersService` depende so de
+  `UsersRepositoryPort`/`ProductsRepositoryPort`/`OrdersRepositoryPort`
+  (`repository.ports.ts`), nao das classes concretas.
 - Paginacao cursor-based nas queries de listagem.
+
+> Uma rodada dedicada de Clean Code/SOLID (`docs/03-architecture.md`) ja endereçou os
+> pontos que estavam aqui antes: validacao dos DTOs com `class-validator` (substituindo
+> validacao manual duplicada), repositorio in-memory dividido por agregado com um teste
+> de rollback contra o repositorio real (nao mais so um duplo de teste no dominio), DIP
+> via portas/tokens, e um `ExceptionFilter` global para erros de dominio.
 
 ## Limitacoes conhecidas
 
