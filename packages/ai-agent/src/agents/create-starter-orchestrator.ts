@@ -42,10 +42,20 @@ class PlaceholderAnalysis implements AnalysisModelPort {
   }
 }
 
-export function createStarterOrchestrator(): OrchestratorAgent {
+export interface CreateStarterOrchestratorOptions {
+  readonly analysis?: AnalysisModelPort;
+}
+
+// "Starter" porque a busca vetorial e a extracao de secoes ainda sao
+// placeholders (aguardando o vector store real, docs/03-architecture.md#airag).
+// O modelo de analise ja pode ser real (LlmAnalysisModel + qualquer provider
+// de llm-provider.factory.ts) - apps/api decide qual usar via env var.
+export function createStarterOrchestrator(
+  options: CreateStarterOrchestratorOptions = {}
+): OrchestratorAgent {
   const vectorSearch = new EmptyVectorSearch();
   const sections = new EmptySections();
-  const analysis = new PlaceholderAnalysis();
+  const analysis = options.analysis ?? new PlaceholderAnalysis();
 
   return new OrchestratorAgent(
     new RAGAgent(new SearchDocumentsTool(vectorSearch), new ExtractSectionTool(sections)),

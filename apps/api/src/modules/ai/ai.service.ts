@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { createStarterOrchestrator, type ThreadMessage } from "@desafio/ai-agent";
+import { OrchestratorAgent, type ThreadMessage } from "@desafio/ai-agent";
 import { randomUUID } from "node:crypto";
 import type {
   AskRequestDto,
@@ -19,7 +19,8 @@ interface StoredThread {
 export class AiService {
   private readonly threads = new Map<string, StoredThread>();
   private readonly messages = new Map<string, ThreadMessage[]>();
-  private readonly orchestrator = createStarterOrchestrator();
+
+  public constructor(private readonly orchestrator: OrchestratorAgent) {}
 
   public createThread(): CreateThreadResponseDto {
     const threadId = randomUUID();

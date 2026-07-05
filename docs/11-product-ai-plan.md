@@ -15,8 +15,10 @@ confirmacao humana explicita. O agente reutiliza a infraestrutura existente em
   input validado por `JsonSchema` e retorno `ToolResult` explicito (`ok`/`error`).
 - Mutacoes exigem human-in-the-loop: o agente propoe, o usuario confirma, so entao a tool de
   escrita executa.
-- Provider de LLM atras de um port (`LlmPort`), permitindo trocar Gemini (default do
-  `.env.example`) por Claude ou outro modelo sem tocar em agente ou tools (OCP/DIP).
+- Provider de LLM atras de um port (`LlmPort`, ja implementado em
+  `packages/ai-agent/src/llm`), permitindo trocar entre OpenAI, OpenRouter, HuggingFace
+  Inference API e Ollama via `LLM_PROVIDER` no `.env.example` sem tocar em agente ou
+  tools (OCP/DIP).
 
 ## Arquitetura
 
@@ -26,7 +28,8 @@ Application    ProductAgentService -> ProductCatalogAgent (LangChain.js tool cal
 Tools (ports)  search_products | get_product | check_stock | list_users
                draft_order | create_order
 Infrastructure ProductReadPort / OrderGatewayPort -> OrdersService (in-memory hoje,
-               Postgres amanha) | LlmPort -> Gemini/Claude | LangSmith tracing
+               Postgres amanha) | LlmPort -> OpenAI/OpenRouter/HuggingFace/Ollama |
+               LangSmith tracing
 Domain         CreateOrderUseCase, erros de dominio, invariantes de estoque
 ```
 

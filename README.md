@@ -17,6 +17,7 @@ Este repositorio consolida os desafios de Backend, Frontend, Data Science/RAG e 
 - [Observabilidade](docs/10-observability.md)
 - [Plano de IA para produtos](docs/11-product-ai-plan.md)
 - [DevOps: Docker e GitHub Actions](docs/12-devops.md)
+- [Proximas melhorias: specs para dev](docs/13-next-improvements.md)
 - [ADR 0001 - TypeScript monorepo](docs/adr/0001-typescript-monorepo.md)
 
 ## Estrutura
@@ -183,17 +184,20 @@ Detalhamento completo em [docs/03-architecture.md](docs/03-architecture.md).
 
 - **AI/RAG (`packages/ai-agent` + `apps/api/src/modules/ai`)**: os contratos, as
   classes de tool/agent e as rotas REST (`/threads`, `/threads/{id}/messages`, `/ask`)
-  estao implementados e testados, mas atras de portas cuja unica implementacao hoje e um
-  fake (mesma classe usada em producao e nos testes). Nao ha, ainda: download/parsing
-  real dos PDFs do arXiv, client real de vector store (ChromaDB), chamada real a um LLM
-  em nenhuma tool, decisao de roteamento por function calling (hoje e `if/else` por
-  palavra-chave) e persistencia de threads em SQLite (hoje e um `Map` em memoria,
-  perdido a cada reinicio). Detalhamento completo do que falta em
+  estao implementados e testados. O client de LLM ja e real e plugavel — `LlmPort`
+  (`packages/ai-agent/src/llm`) suporta OpenAI, OpenRouter, HuggingFace Inference API e
+  Ollama via `LLM_PROVIDER` no `.env`, com LangSmith tracing automatico quando
+  configurado. Sem `LLM_PROVIDER` definido, a API usa um fake (`PlaceholderAnalysis`),
+  sem exigir credenciais. Nao ha, ainda: download/parsing real dos PDFs do arXiv, client
+  real de vector store (ChromaDB) — por isso o LLM hoje raciocina so sobre ids de papers,
+  nao sobre o texto completo deles —, decisao de roteamento por function calling (hoje e
+  `if/else` por palavra-chave) e persistencia de threads em SQLite (hoje e um `Map` em
+  memoria, perdido a cada reinicio). Detalhamento completo em
   [docs/03-architecture.md](docs/03-architecture.md#airag). Por que nao foi concluido:
   o desafio de IA/RAG e por si so um segundo desafio completo (multi-agente, ingestao,
-  vector store, LLM), e o tempo do ciclo atual priorizou fechar com qualidade os
-  desafios de Backend, Frontend e QA; a base de contratos/rotas ja deixada facilita
-  plugar os adapters reais depois sem redesenhar a arquitetura.
+  vector store), e o tempo do ciclo atual priorizou fechar com qualidade os desafios de
+  Backend, Frontend e QA; a base de contratos/rotas/client de LLM ja deixada facilita
+  plugar o vector store depois sem redesenhar a arquitetura.
 - **Dark mode do frontend de animes**: o design system ja tem paleta escura pronta
   (`app/globals.css`, `dark:` no Tailwind), mas nao ha `ThemeProvider` nem alternador —
   a funcionalidade nao e alcancavel pelo usuario final ainda.

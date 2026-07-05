@@ -166,36 +166,47 @@ aplicada a `app.module.ts`).
 
 ## AI/RAG
 
-Tecnologia planejada (dependencias ja em `packages/ai-agent/package.json`, ainda nao
-importadas em codigo de producao):
+Tecnologia usada:
 
-- LangChain.js para ferramentas, retrievers e modelos.
-- LangGraph para orquestracao multi-agente quando o fluxo exigir estado explicito.
-- LangSmith para tracing, avaliacao e debugging.
-- ChromaDB como vector store local inicial (container ja sobe no `docker-compose.yml`).
-- SQLite para threads.
+- LangChain.js para os clients de LLM (`@langchain/openai`, `@langchain/ollama`) e para
+  as mensagens de chat; `@huggingface/inference` para o provider HuggingFace (a
+  Inference API nao e um `BaseChatModel` do LangChain).
+- LangSmith para tracing, avaliacao e debugging — habilitado so via env vars
+  (`LANGSMITH_TRACING`/`LANGSMITH_API_KEY`/`LANGSMITH_PROJECT`), sem codigo extra: o
+  proprio LangChain instrumenta cada chamada a um `BaseChatModel` automaticamente.
+- LangGraph reservado para orquestracao multi-agente quando o fluxo exigir estado
+  explicito (ainda nao usado — hoje o roteamento e um `if/else` simples, ver abaixo).
+- ChromaDB como vector store local inicial (container ja sobe no `docker-compose.yml`,
+  ainda sem client real).
+- SQLite para threads (planejado, ainda nao integrado).
 
-Estado atual — esqueleto, nao integracao real: os contratos (`ToolResult`, `JsonSchema`,
-`PaperMetadata`), as classes de tool/agent e as rotas REST (`/threads`, `/ask`) estao
-implementados e testados, mas atras de portas (`VectorSearchPort`, `PaperSectionPort`,
-`AnalysisModelPort`) cuja unica implementacao existente e um fake (`EmptyVectorSearch`,
-`PlaceholderAnalysis` em `create-starter-orchestrator.ts`) — o mesmo fake usado em
-producao e nos testes unitarios. Faltam, para um RAG funcional:
+Estado atual: os contratos (`ToolResult`, `JsonSchema`, `PaperMetadata`), as classes de
+tool/agent e as rotas REST (`/threads`, `/ask`) estao implementados e testados, atras de
+tres portas (`VectorSearchPort`, `PaperSectionPort`, `AnalysisModelPort`). Das tres,
+`AnalysisModelPort` ja tem uma implementacao real opcional —
+`LlmAnalysisModel` (`packages/ai-agent/src/llm/llm-analysis-model.ts`), que chama um dos
+4 provedores suportados (OpenAI, OpenRouter, HuggingFace Inference API, Ollama) atras de
+um unico `LlmPort`, escolhido via `LLM_PROVIDER` no `.env` (`llm-provider.factory.ts`).
+Sem `LLM_PROVIDER` definido, `AiModule` continua usando o fake `PlaceholderAnalysis`
+(nenhuma credencial exigida) — e o comportamento padrao em dev/CI. `VectorSearchPort` e
+`PaperSectionPort` continuam so com fakes (`EmptyVectorSearch`/`EmptySections`), entao
+mesmo com um LLM real configurado, `ComparePapersTool`/`SummarizeTool`/`RankPapersTool`
+raciocinam apenas sobre os ids dos papers, nao sobre o texto completo deles. Faltam,
+para um RAG funcional:
 
 - Download e parsing real dos PDFs do arXiv (hoje `ingestion/papers.ts` so retorna a
   lista de metadados fixos, sem buscar nem processar arquivo algum).
 - Client real de ChromaDB com embeddings (hoje nao ha chamada de rede a nenhum vector
-  store).
-- Chamada real a um LLM (Gemini/Claude via LangChain.js) em qualquer tool — hoje nenhuma
-  tool invoca um modelo.
+  store) para popular `VectorSearchPort`/`PaperSectionPort` com conteudo real, que entao
+  alimentaria o prompt do `LlmAnalysisModel` e a geracao de resposta do `RAGAgent`
+  (hoje o `RAGAgent` so concatena os matches crus, sem chamar um LLM).
 - `OrchestratorAgent` decide por `if/else` de substring no texto da pergunta, nao por
-  function calling de um LLM.
+  function calling de um LLM (ver `docs/13-next-improvements.md`, item D2).
 - Persistencia de threads em SQLite (hoje e um `Map` em memoria do processo, perdido a
   cada reinicio da API).
-
-Ou seja: com ou sem uma chave de API configurada, o comportamento hoje e identico
-(sempre a resposta vazia/fixa dos fakes), porque nenhum adapter real foi implementado —
-nao e um caso de "funciona, so falta a chave".
+- Testes manuais com credenciais reais de HuggingFace/Ollama (os testes automatizados
+  usam fakes/mocks para o `LlmPort`, sem chamada de rede — ver
+  `packages/ai-agent/src/llm/*.spec.ts`).
 
 Agentes (roteamento hoje fixo, nao decidido por LLM):
 
