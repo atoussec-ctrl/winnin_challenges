@@ -5,8 +5,15 @@ services:
       dockerfile: apps/api/Dockerfile
     environment:
       API_PORT: 3333
+      # Com DATABASE_URL definida, a API usa o adapter Postgres (transacao +
+      # SELECT ... FOR UPDATE); sem ela, cai nos repositorios in-memory. O host
+      # e o nome do servico na rede do compose.
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/desafio
     ports:
       - "3333:3333"
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3333/health"]
       interval: 5s

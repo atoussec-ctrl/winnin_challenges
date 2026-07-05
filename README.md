@@ -22,6 +22,7 @@ Este repositorio consolida os desafios de Backend, Frontend, Data Science/RAG e 
 - [Backlog priorizado](docs/15-backlog.md)
 - [Roadmap](docs/16-roadmap.md)
 - [ADR 0001 - TypeScript monorepo](docs/adr/0001-typescript-monorepo.md)
+- [ADR 0002 - Persistencia em Postgres](docs/adr/0002-postgres-persistence.md)
 
 ## Estrutura
 
@@ -149,17 +150,20 @@ Detalhamento completo em [docs/03-architecture.md](docs/03-architecture.md).
 - Logs estruturados JSON e metricas Prometheus via interceptor global (ver
   [docs/10-observability.md](docs/10-observability.md)).
 
-**Trade-offs assumidos**
+**Persistencia (Postgres ou in-memory, selecionavel)**
 
-- **Persistencia in-memory (`Map`) em vez de Postgres**: o `docker-compose.yml` ja
-  provisiona um servico Postgres, mas a API de pedidos ainda nao le `DATABASE_URL` nem
-  escreve nele. Decisao consciente para priorizar dominio/testes no tempo do desafio.
-  Consequencia pratica: reiniciar a API perde os dados (por isso existe o script de
-  seed de demonstracao).
-- **Lock global em vez de lock por produto**: toda criacao de pedido e serializada por
-  uma fila de promises (mutex do processo), mesmo entre produtos diferentes. Garante
-  corretude de estoque (comprovado em teste de concorrencia real com
-  `Promise.allSettled`, estoque nunca fica negativo) as custas de paralelismo.
+- Com `DATABASE_URL` definida (default no `docker-compose.yml`), o dominio de pedidos usa
+  um **adapter Postgres real**: transacao por pedido e **`SELECT ... FOR UPDATE`** por
+  linha de produto, garantindo corretude de estoque sob concorrencia (comprovado por
+  teste de integracao) e paralelismo entre produtos diferentes. Ver
+  [ADR 0002](docs/adr/0002-postgres-persistence.md).
+- Sem `DATABASE_URL`, cai nos **repositorios in-memory** (`Map`) — usados nos testes
+  unitarios e em dev sem banco. Ai a corretude vem de um mutex de processo +
+  snapshot/restore (lock global, serializa todos os pedidos) e os dados se perdem no
+  restart (por isso existe o script de seed).
+
+**Outros trade-offs assumidos**
+
 - **Sem paginacao** nas queries `users`/`products`/`orders` — aceitavel no volume do
   desafio, seria necessario antes de producao.
 - **Sem autenticacao/autorizacao** nas mutations — fora do escopo pedido pelo desafio.
@@ -169,13 +173,9 @@ Detalhamento completo em [docs/03-architecture.md](docs/03-architecture.md).
 
 **Pontos que faria diferente com mais tempo**
 
-- Trocar o repositorio in-memory por um adapter Postgres (Prisma ou TypeORM) com lock
-  por linha (`SELECT ... FOR UPDATE`) no lugar do mutex global, reaproveitando a mesma
-  porta de unit-of-work ja definida no dominio (a camada de aplicacao nao precisaria
-  mudar) — a base ja esta pronta para isso: `OrdersService` depende so de
-  `UsersRepositoryPort`/`ProductsRepositoryPort`/`OrdersRepositoryPort`
-  (`repository.ports.ts`), nao das classes concretas.
 - Paginacao cursor-based nas queries de listagem.
+- Migracoes versionadas (ex.: node-pg-migrate) no lugar do `CREATE TABLE IF NOT EXISTS`
+  idempotente aplicado no boot.
 
 > Uma rodada dedicada de Clean Code/SOLID (`docs/03-architecture.md`) ja endereçou os
 > pontos que estavam aqui antes: validacao dos DTOs com `class-validator` (substituindo

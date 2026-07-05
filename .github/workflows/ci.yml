@@ -45,6 +45,46 @@ jobs:
       - name: Testes com cobertura minima de 95%
         run: pnpm coverage
 
+  integration:
+    name: Testes de integracao (Postgres)
+    runs-on: ubuntu-latest
+    needs: quality
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: desafio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d desafio"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # Build primeiro: os testes resolvem @desafio/domain via dist.
+      - name: Build de todos os pacotes
+        run: pnpm build
+
+      - name: Testes de integracao do adapter Postgres
+        run: pnpm --filter @desafio/api test:integration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/desafio
+
   docker:
     name: Build das imagens Docker
     runs-on: ubuntu-latest
