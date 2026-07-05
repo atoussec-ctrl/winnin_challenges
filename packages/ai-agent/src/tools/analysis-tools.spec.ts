@@ -86,5 +86,24 @@ describe("analysis tools", () => {
 
     expect(result.ok).toBe(false);
   });
+
+  it("turns a rejected analysis port call into a ToolResult error instead of throwing", async () => {
+    const failure = new Error("LLM endpoint timed out");
+    const brokenAnalysis: AnalysisModelPort = {
+      comparePapers: () => Promise.reject(failure),
+      rankPapers: () => Promise.reject(failure),
+      summarize: () => Promise.reject(failure)
+    };
+
+    const result = await new ComparePapersTool(brokenAnalysis).execute({
+      aspect: "tool use",
+      paperIds: ["2210.03629", "2302.04761"]
+    });
+
+    expect(result).toEqual({
+      error: { code: "TOOL_EXECUTION_FAILED", message: "LLM endpoint timed out" },
+      ok: false
+    });
+  });
 });
 

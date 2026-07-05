@@ -17,6 +17,11 @@ const MAX_STOCK = 1_000_000;
 const MAX_ORDER_ITEMS = 100;
 const MAX_ITEM_QUANTITY = 10_000;
 
+const PRICE_MESSAGE = `Product price must be greater than zero and at most ${MAX_PRICE}.`;
+const STOCK_MESSAGE = `Product stock must be an integer between zero and ${MAX_STOCK}.`;
+const ITEM_QUANTITY_MESSAGE = `Item quantity must be an integer between 1 and ${MAX_ITEM_QUANTITY}.`;
+const ORDER_ITEMS_MESSAGE = `Order must contain between 1 and ${MAX_ORDER_ITEMS} items.`;
+
 @ObjectType("User")
 export class UserModel {
   @Field(() => ID)
@@ -104,14 +109,14 @@ export class CreateProductInput {
   public name!: string;
 
   @Field(() => Float)
-  @IsPositive({ message: `Product price must be greater than zero and at most ${MAX_PRICE}.` })
-  @Max(MAX_PRICE, { message: `Product price must be greater than zero and at most ${MAX_PRICE}.` })
+  @IsPositive({ message: PRICE_MESSAGE })
+  @Max(MAX_PRICE, { message: PRICE_MESSAGE })
   public price!: number;
 
   @Field(() => Int)
-  @IsInt({ message: `Product stock must be an integer between zero and ${MAX_STOCK}.` })
-  @Min(0, { message: `Product stock must be an integer between zero and ${MAX_STOCK}.` })
-  @Max(MAX_STOCK, { message: `Product stock must be an integer between zero and ${MAX_STOCK}.` })
+  @IsInt({ message: STOCK_MESSAGE })
+  @Min(0, { message: STOCK_MESSAGE })
+  @Max(MAX_STOCK, { message: STOCK_MESSAGE })
   public stock!: number;
 }
 
@@ -123,11 +128,9 @@ export class CreateOrderItemInput {
   public productId!: string;
 
   @Field(() => Int)
-  @IsInt({ message: `Item quantity must be an integer between 1 and ${MAX_ITEM_QUANTITY}.` })
-  @Min(1, { message: `Item quantity must be an integer between 1 and ${MAX_ITEM_QUANTITY}.` })
-  @Max(MAX_ITEM_QUANTITY, {
-    message: `Item quantity must be an integer between 1 and ${MAX_ITEM_QUANTITY}.`
-  })
+  @IsInt({ message: ITEM_QUANTITY_MESSAGE })
+  @Min(1, { message: ITEM_QUANTITY_MESSAGE })
+  @Max(MAX_ITEM_QUANTITY, { message: ITEM_QUANTITY_MESSAGE })
   public quantity!: number;
 }
 
@@ -139,10 +142,8 @@ export class CreateOrderInput {
   public userId!: string;
 
   @Field(() => [CreateOrderItemInput])
-  @ArrayMinSize(1, { message: `Order must contain between 1 and ${MAX_ORDER_ITEMS} items.` })
-  @ArrayMaxSize(MAX_ORDER_ITEMS, {
-    message: `Order must contain between 1 and ${MAX_ORDER_ITEMS} items.`
-  })
+  @ArrayMinSize(1, { message: ORDER_ITEMS_MESSAGE })
+  @ArrayMaxSize(MAX_ORDER_ITEMS, { message: ORDER_ITEMS_MESSAGE })
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemInput)
   public items!: CreateOrderItemInput[];

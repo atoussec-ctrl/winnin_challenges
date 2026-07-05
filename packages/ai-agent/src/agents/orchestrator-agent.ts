@@ -1,5 +1,7 @@
 import type { AgentAnswer, ThreadMessage } from "../contracts/thread";
 import type { PaperId } from "../contracts/paper";
+import type { ToolResult } from "../contracts/tool-result";
+import type { StructuredAnalysis } from "../tools/analysis-tools";
 import type { AnalystAgent } from "./analyst-agent";
 import type { RAGAgent } from "./rag-agent";
 
@@ -16,6 +18,17 @@ const DEFAULT_PAPER_IDS: readonly PaperId[] = [
   "2302.04761"
 ];
 
+function toAgentAnswer(result: ToolResult<StructuredAnalysis>): AgentAnswer {
+  if (!result.ok) {
+    return { content: result.error.message, sources: [] };
+  }
+
+  return {
+    content: result.data.content,
+    sources: result.data.paperIds.map((paperId) => ({ paperId, title: paperId }))
+  };
+}
+
 export class OrchestratorAgent {
   public constructor(
     private readonly ragAgent: RAGAgent,
@@ -26,31 +39,21 @@ export class OrchestratorAgent {
     const normalizedQuestion = input.content.toLowerCase();
 
     if (normalizedQuestion.includes("compare")) {
-      const result = await this.analystAgent.compare(
-        { history: input.history, question: input.content },
-        DEFAULT_PAPER_IDS
+      return toAgentAnswer(
+        await this.analystAgent.compare(
+          { history: input.history, question: input.content },
+          DEFAULT_PAPER_IDS
+        )
       );
-
-      return result.ok
-        ? {
-            content: result.data.content,
-            sources: result.data.paperIds.map((paperId) => ({ paperId, title: paperId }))
-          }
-        : { content: result.error.message, sources: [] };
     }
 
     if (normalizedQuestion.includes("rank") || normalizedQuestion.includes("relevante")) {
-      const result = await this.analystAgent.rank(
-        { history: input.history, question: input.content },
-        DEFAULT_PAPER_IDS
+      return toAgentAnswer(
+        await this.analystAgent.rank(
+          { history: input.history, question: input.content },
+          DEFAULT_PAPER_IDS
+        )
       );
-
-      return result.ok
-        ? {
-            content: result.data.content,
-            sources: result.data.paperIds.map((paperId) => ({ paperId, title: paperId }))
-          }
-        : { content: result.error.message, sources: [] };
     }
 
     const result = await this.ragAgent.retrieve({

@@ -46,4 +46,17 @@ describe("SearchDocumentsTool", () => {
       expect(result.error.code).toBe("INVALID_QUERY");
     }
   });
+
+  it("turns a rejected vector search call into a ToolResult error instead of throwing", async () => {
+    const failure = new Error("vector store is unreachable");
+    const brokenSearch: VectorSearchPort = { search: () => Promise.reject(failure) };
+    const tool = new SearchDocumentsTool(brokenSearch);
+
+    const result = await tool.execute({ query: "attention mechanism" });
+
+    expect(result).toEqual({
+      error: { code: "TOOL_EXECUTION_FAILED", message: "vector store is unreachable" },
+      ok: false
+    });
+  });
 });

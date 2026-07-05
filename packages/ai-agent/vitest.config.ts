@@ -8,7 +8,7 @@ export default defineConfig({
         "src/index.ts",
         "src/agents/create-starter-orchestrator.ts",
         "src/contracts/thread.ts",
-        "src/tools/base-tool.ts"
+        "src/llm/llm.port.ts"
       ],
       include: ["src/**/*.ts"],
       provider: "v8",

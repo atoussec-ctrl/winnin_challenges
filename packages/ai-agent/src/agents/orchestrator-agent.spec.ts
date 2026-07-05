@@ -114,4 +114,49 @@ describe("OrchestratorAgent", () => {
     expect(answer.content).toBe("ReAct is most relevant.");
     expect(answer.sources.map((source) => source.paperId)).toEqual(["2210.03629"]);
   });
+
+  it("returns tool errors from comparison questions without sources", async () => {
+    class FailingAnalysis extends FakeAnalysis {
+      public override comparePapers(): Promise<never> {
+        return Promise.reject(new Error("LLM endpoint timed out"));
+      }
+    }
+    const analysis = new FailingAnalysis();
+    const agent = new OrchestratorAgent(
+      new RAGAgent(new SearchDocumentsTool(new FakeVectorSearch()), new ExtractSectionTool(new FakeSections())),
+      new AnalystAgent(
+        new ComparePapersTool(analysis),
+        new SummarizeTool(analysis),
+        new RankPapersTool(analysis)
+      )
+    );
+
+    const answer = await agent.answer({ content: "Compare ReAct e Toolformer", history: [] });
+
+    expect(answer).toEqual({ content: "LLM endpoint timed out", sources: [] });
+  });
+
+  it("returns tool errors from ranking questions without sources", async () => {
+    class FailingAnalysis extends FakeAnalysis {
+      public override rankPapers(): Promise<never> {
+        return Promise.reject(new Error("LLM endpoint timed out"));
+      }
+    }
+    const analysis = new FailingAnalysis();
+    const agent = new OrchestratorAgent(
+      new RAGAgent(new SearchDocumentsTool(new FakeVectorSearch()), new ExtractSectionTool(new FakeSections())),
+      new AnalystAgent(
+        new ComparePapersTool(analysis),
+        new SummarizeTool(analysis),
+        new RankPapersTool(analysis)
+      )
+    );
+
+    const answer = await agent.answer({
+      content: "Qual paper e mais relevante para ferramentas externas?",
+      history: []
+    });
+
+    expect(answer).toEqual({ content: "LLM endpoint timed out", sources: [] });
+  });
 });

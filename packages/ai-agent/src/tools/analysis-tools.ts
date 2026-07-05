@@ -1,7 +1,7 @@
 import { objectSchema } from "../contracts/json-schema";
 import type { PaperId } from "../contracts/paper";
-import { toolError, toolOk, type ToolResult } from "../contracts/tool-result";
-import type { AgentTool } from "./base-tool";
+import { toolError, type ToolResult } from "../contracts/tool-result";
+import { runTool, type AgentTool } from "./base-tool";
 
 export interface ComparePapersInput {
   readonly paperIds: readonly PaperId[];
@@ -49,7 +49,7 @@ export class ComparePapersTool
       return toolError("INVALID_COMPARISON", "At least two papers are required.");
     }
 
-    return toolOk(await this.analysis.comparePapers(input));
+    return runTool(() => this.analysis.comparePapers(input));
   }
 }
 
@@ -71,7 +71,7 @@ export class SummarizeTool implements AgentTool<SummarizeInput, StructuredAnalys
       return toolError("INVALID_SUMMARY_SIZE", "Summary must contain between 1 and 5 bullets.");
     }
 
-    return toolOk(await this.analysis.summarize(input));
+    return runTool(() => this.analysis.summarize(input));
   }
 }
 
@@ -93,7 +93,7 @@ export class RankPapersTool implements AgentTool<RankPapersInput, StructuredAnal
       return toolError("INVALID_RANKING", "Ranking criterion must not be empty.");
     }
 
-    return toolOk(await this.analysis.rankPapers(input));
+    return runTool(() => this.analysis.rankPapers(input));
   }
 }
 

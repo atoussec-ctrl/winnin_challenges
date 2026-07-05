@@ -57,5 +57,21 @@ describe("ExtractSectionTool", () => {
       expect(result.error.code).toBe("SECTION_NOT_FOUND");
     }
   });
+
+  it("turns a rejected sections port call into a ToolResult error instead of throwing", async () => {
+    const failure = new Error("papers datastore is down");
+    const brokenSections: PaperSectionPort = { extractSection: () => Promise.reject(failure) };
+    const tool = new ExtractSectionTool(brokenSections);
+
+    const result = await tool.execute({
+      paperId: "1706.03762",
+      sectionName: "introduction"
+    });
+
+    expect(result).toEqual({
+      error: { code: "TOOL_EXECUTION_FAILED", message: "papers datastore is down" },
+      ok: false
+    });
+  });
 });
 

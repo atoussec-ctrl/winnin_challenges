@@ -1,7 +1,7 @@
 import { objectSchema } from "../contracts/json-schema";
 import type { DocumentChunk, PaperId } from "../contracts/paper";
-import { toolError, toolOk, type ToolResult } from "../contracts/tool-result";
-import type { AgentTool } from "./base-tool";
+import { toolError, type ToolResult } from "../contracts/tool-result";
+import { runTool, type AgentTool } from "./base-tool";
 
 export interface SearchDocumentsInput {
   readonly query: string;
@@ -39,13 +39,16 @@ export class SearchDocumentsTool
       return toolError("INVALID_QUERY", "Query must not be empty.");
     }
 
-    const matches = await this.vectorSearch.search({
-      limit: input.limit ?? 5,
-      paperIds: input.paperIds,
-      query: input.query
-    });
-
-    return toolOk({ matches }, { count: matches.length });
+    return runTool(
+      async () => ({
+        matches: await this.vectorSearch.search({
+          limit: input.limit ?? 5,
+          paperIds: input.paperIds,
+          query: input.query
+        })
+      }),
+      (output) => ({ count: output.matches.length })
+    );
   }
 }
 

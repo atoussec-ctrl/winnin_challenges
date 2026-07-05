@@ -1,7 +1,7 @@
 import { objectSchema } from "../contracts/json-schema";
 import type { PaperId } from "../contracts/paper";
 import { toolError, toolOk, type ToolResult } from "../contracts/tool-result";
-import type { AgentTool } from "./base-tool";
+import { runTool, type AgentTool } from "./base-tool";
 
 export interface ExtractSectionInput {
   readonly paperId: PaperId;
@@ -38,13 +38,17 @@ export class ExtractSectionTool
       return toolError("INVALID_SECTION", "Section name must not be empty.");
     }
 
-    const section = await this.sections.extractSection(input);
+    const result = await runTool(() => this.sections.extractSection(input));
 
-    if (!section) {
+    if (!result.ok) {
+      return result;
+    }
+
+    if (!result.data) {
       return toolError("SECTION_NOT_FOUND", "Requested section was not found.");
     }
 
-    return toolOk(section);
+    return toolOk(result.data);
   }
 }
 
