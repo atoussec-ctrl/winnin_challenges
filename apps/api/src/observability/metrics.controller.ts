@@ -1,7 +1,11 @@
 import { Controller, Get, Header } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 import { MetricsService } from "./metrics.service";
 
+// Isento do rate limit global: e o proprio endpoint de scrape do Prometheus,
+// chamado em intervalo curto e fixo pelo coletor.
+@SkipThrottle()
 @ApiTags("observability")
 @Controller("metrics")
 export class MetricsController {

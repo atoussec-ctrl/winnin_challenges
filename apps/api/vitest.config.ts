@@ -17,7 +17,12 @@ export default defineConfig({
         "src/**/*.service.ts",
         "src/**/*.validation.ts",
         "src/**/*controller.ts",
-        "src/observability/**/*.ts"
+        "src/observability/**/*.ts",
+        "src/config/**/*.ts",
+        "src/modules/orders/loaders/**/*.ts",
+        "src/modules/ai/**/*.ts",
+        "src/**/*.factory.ts",
+        "src/**/*.guard.ts"
       ],
       provider: "v8",
       thresholds: {

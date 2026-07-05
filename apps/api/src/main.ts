@@ -2,13 +2,22 @@ import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
+import { buildCorsOptions } from "./config/cors.config";
 import { StructuredLogger } from "./observability/structured-logger";
 
 async function bootstrap(): Promise<void> {
   const logger = new StructuredLogger();
   const app = await NestFactory.create(AppModule, { logger });
-  app.enableCors();
+  app.use(
+    helmet({
+      // CSP fica a cargo do frontend (Next.js); o Swagger UI servido em /docs
+      // carrega assets inline que a policy default do Helmet bloquearia.
+      contentSecurityPolicy: false
+    })
+  );
+  app.enableCors(buildCorsOptions(process.env));
   // Validacao declarativa dos DTOs (class-validator) para GraphQL e REST;
   // substitui a validacao manual que existia dentro dos services.
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
