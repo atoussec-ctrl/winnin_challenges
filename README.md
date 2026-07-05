@@ -18,6 +18,9 @@ Este repositorio consolida os desafios de Backend, Frontend, Data Science/RAG e 
 - [Plano de IA para produtos](docs/11-product-ai-plan.md)
 - [DevOps: Docker e GitHub Actions](docs/12-devops.md)
 - [Proximas melhorias: specs para dev](docs/13-next-improvements.md)
+- [Conformidade com os desafios e estado atual](docs/14-conformidade-desafios.md)
+- [Backlog priorizado](docs/15-backlog.md)
+- [Roadmap](docs/16-roadmap.md)
 - [ADR 0001 - TypeScript monorepo](docs/adr/0001-typescript-monorepo.md)
 
 ## Estrutura
