@@ -13,7 +13,7 @@ Status: **TODO** · **PARCIAL** · **FEITO**.
 
 | ID | Prioridade | Item | Evidencia | DoD | Status |
 |---|---|---|---|---|---|
-| AI-06 | P1 | Validar input dos endpoints de IA | `ai.dtos.ts`: `content`/`question` sem class-validator; `ValidationPipe` global aceita vazio | `@IsString`+`@IsNotEmpty` nos DTOs; teste que rejeita `content`/`question` vazio com 400 | TODO |
+| AI-06 | P1 | Validar input dos endpoints de IA | `ai.dtos.ts`: `content`/`question` sem class-validator; `ValidationPipe` global aceita vazio | `@IsString`+`@IsNotEmpty` nos DTOs; teste que rejeita `content`/`question` vazio com 400 | FEITO |
 
 ## AI/RAG (fechar o desafio DATASCI)
 
@@ -50,7 +50,7 @@ Status: **TODO** · **PARCIAL** · **FEITO**.
 
 | ID | Prioridade | Item | Evidencia | DoD | Status |
 |---|---|---|---|---|---|
-| SEC-01 | P1 | Zerar vulnerabilidades de dependencia | `pnpm audit`: 3 high, 7 moderate (langsmith/ws/multer) | bump de `@langchain/*` para puxar `langsmith>=0.6`; `pnpm audit --audit-level=high` sem high/critical | TODO |
+| SEC-01 | P1 | Zerar vulnerabilidades de dependencia | `pnpm audit`: 3 high, 7 moderate (langsmith/ws/multer) | `pnpm audit --audit-level=high` sem high/critical | PARCIAL — multer>=2.2.0 e ws>=8.21.0 via `pnpm.overrides` (2 highs eliminados); 4 advisories da langsmith em `auditConfig.ignoreGhsas` com justificativa. Falta o bump major coordenado de `@langchain/*` (que fixa langsmith@^0.3.67) para remover de vez |
 | SEC-02 | P1 | Headers de seguranca no frontend (CSP/HSTS) | `next.config.mjs` sem `headers()` | `headers()` com HSTS, `X-Content-Type-Options`, `X-Frame-Options`, CSP report-only liberando `s4.anilist.co` | TODO |
 | SEC-03 | P2 | Validacao de env vars por schema | `process.env` lido ad hoc | `@nestjs/config` com `validationSchema` (Zod/Joi) falhando no boot | TODO |
 | SEC-04 | P2 | `helmet` CSP para o Swagger | CSP do Helmet desligada (`contentSecurityPolicy: false`) | CSP compativel com o Swagger UI em `/docs` em vez de desligada | TODO |
@@ -60,14 +60,14 @@ Status: **TODO** · **PARCIAL** · **FEITO**.
 | ID | Prioridade | Item | Evidencia | DoD | Status |
 |---|---|---|---|---|---|
 | ARCH-01 | P1 | Graceful shutdown | `main.ts` sem `enableShutdownHooks()` | `enableShutdownHooks()` + `onModuleDestroy` fechando pools quando BE-01/AI-02/AI-04 existirem | TODO |
-| ARCH-02 | P2 | `@next/eslint-plugin-next` no lint | ausente em `eslint.config.mjs` | plugin adicionado so no escopo `apps/web`; lint verde | TODO |
+| ARCH-02 | P2 | `@next/eslint-plugin-next` no lint | ausente em `eslint.config.mjs` | plugin adicionado so no escopo `apps/web`; lint verde | FEITO — surfaces FE-02 (`<img>`) como warning |
 | ARCH-03 | P2 | ADRs para decisoes estruturais | so `adr/0001` | ADR por decisao grande implementada (DataLoader, provider de LLM, Postgres, SQLite) | PARCIAL |
 
 ## CI/CD / DevOps
 
 | ID | Prioridade | Item | Evidencia | DoD | Status |
 |---|---|---|---|---|---|
-| CI-01 | P1 | Gate de `pnpm audit` no CI | `ci.yml` sem auditoria | step `pnpm audit --audit-level=high` falhando em high/critical | TODO |
+| CI-01 | P1 | Gate de `pnpm audit` no CI | `ci.yml` sem auditoria | step `pnpm audit --audit-level=high` falhando em high/critical | FEITO |
 | CI-02 | P2 | Scan de imagem Docker (Trivy) | sem scan | `trivy image` para `api`/`web`, falha em HIGH/CRITICAL com fix | TODO |
 | CI-03 | P2 | Fixar tag/digest do ChromaDB | `chromadb/chroma:latest` (flutuante) | tag versionada ou digest `sha256:` no compose | TODO |
 | CI-04 | P2 | Pinar GitHub Actions por SHA | actions referenciadas por tag | actions de terceiros pinadas por commit SHA | TODO |

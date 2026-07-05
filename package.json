@@ -15,11 +15,26 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
+    "@next/eslint-plugin-next": "^15.5.20",
     "@types/node": "^22.13.0",
     "eslint": "^9.20.0",
     "prettier": "^3.5.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.24.0",
     "vitest": "^3.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "multer@<2.2.0": ">=2.2.0",
+      "ws@>=8.0.0 <8.21.0": ">=8.21.0"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-3644-q5cj-c5c7",
+        "GHSA-v34v-rq6j-cj6p",
+        "GHSA-fw9q-39r9-c252",
+        "GHSA-rr7j-v2q5-chgv"
+      ]
+    }
   }
 }

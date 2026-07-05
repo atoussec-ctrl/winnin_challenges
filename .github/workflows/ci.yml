@@ -37,6 +37,11 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Falha em qualquer vulnerabilidade high/critical nova. Advisories aceitas
+      # conscientemente ficam em pnpm.auditConfig.ignoreGhsas (package.json).
+      - name: Auditoria de dependencias (high/critical)
+        run: pnpm audit --audit-level=high
+
       - name: Testes com cobertura minima de 95%
         run: pnpm coverage
 
