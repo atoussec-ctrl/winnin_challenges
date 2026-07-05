@@ -28,47 +28,55 @@ export class OrdersService {
     private readonly createOrderUseCase: CreateOrderUseCase
   ) {}
 
-  public listUsers(): UserModel[] {
-    return this.users.listUsers().map((user) => this.toUserModel(user));
+  public async listUsers(): Promise<UserModel[]> {
+    const users = await this.users.listUsers();
+    return users.map((user) => this.toUserModel(user));
   }
 
-  public listProducts(): ProductModel[] {
-    return this.products.listProducts().map((product) => this.toProductModel(product));
+  public async listProducts(): Promise<ProductModel[]> {
+    const products = await this.products.listProducts();
+    return products.map((product) => this.toProductModel(product));
   }
 
-  public listOrders(): OrderModel[] {
-    return this.orders.listOrders().map((order) => this.toOrderModel(order));
+  public async listOrders(): Promise<OrderModel[]> {
+    const orders = await this.orders.listOrders();
+    return Promise.all(orders.map((order) => this.toOrderModel(order)));
   }
 
   // Uma unica chamada ao repositorio para todos os userIds pedidos - consumida
   // pelo OrdersByUserLoader (DataLoader) para resolver User.orders sem N+1.
-  public listOrdersByUserIds(userIds: readonly string[]): ReadonlyMap<string, OrderModel[]> {
-    const grouped = this.orders.listOrdersByUserIds(userIds);
+  public async listOrdersByUserIds(
+    userIds: readonly string[]
+  ): Promise<ReadonlyMap<string, OrderModel[]>> {
+    const grouped = await this.orders.listOrdersByUserIds(userIds);
     const result = new Map<string, OrderModel[]>();
 
     for (const userId of userIds) {
-      result.set(userId, (grouped.get(userId) ?? []).map((order) => this.toOrderModel(order)));
+      result.set(
+        userId,
+        await Promise.all((grouped.get(userId) ?? []).map((order) => this.toOrderModel(order)))
+      );
     }
 
     return result;
   }
 
-  public createUser(input: CreateUserInput): UserModel {
-    if (this.users.hasUserWithEmail(input.email)) {
+  public async createUser(input: CreateUserInput): Promise<UserModel> {
+    if (await this.users.hasUserWithEmail(input.email)) {
       throw new ConflictException(`Email ${input.email} is already in use.`);
     }
 
     return this.toUserModel(
-      this.users.saveUser({
+      await this.users.saveUser({
         email: input.email.trim(),
         name: input.name.trim()
       })
     );
   }
 
-  public createProduct(input: CreateProductInput): ProductModel {
+  public async createProduct(input: CreateProductInput): Promise<ProductModel> {
     return this.toProductModel(
-      this.products.saveProduct({
+      await this.products.saveProduct({
         name: input.name.trim(),
         priceCents: Math.round(input.price * 100),
         stock: input.stock
@@ -77,7 +85,7 @@ export class OrdersService {
   }
 
   public async createOrder(input: CreateOrderInput): Promise<OrderModel> {
-    const user = this.users.findUserById(input.userId);
+    const user = await this.users.findUserById(input.userId);
 
     if (!user) {
       throw new NotFoundException(`User ${input.userId} was not found.`);
@@ -108,18 +116,16 @@ export class OrdersService {
     };
   }
 
-  private toOrderModel(order: Order): OrderModel {
-    const user = this.users.findUserById(order.userId);
+  private async toOrderModel(order: Order): Promise<OrderModel> {
+    const user = await this.users.findUserById(order.userId);
 
     if (!user) {
       throw new NotFoundException(`User ${order.userId} was not found.`);
     }
 
-    return {
-      createdAt: order.createdAt,
-      id: order.id,
-      items: order.items.map((item) => {
-        const product = this.products.findProductById(item.productId);
+    const items = await Promise.all(
+      order.items.map(async (item) => {
+        const product = await this.products.findProductById(item.productId);
 
         if (!product) {
           throw new NotFoundException(`Product ${item.productId} was not found.`);
@@ -130,7 +136,13 @@ export class OrdersService {
           product: this.toProductModel(product),
           quantity: item.quantity
         };
-      }),
+      })
+    );
+
+    return {
+      createdAt: order.createdAt,
+      id: order.id,
+      items,
       total: order.totalCents / 100,
       user: this.toUserModel(user)
     };

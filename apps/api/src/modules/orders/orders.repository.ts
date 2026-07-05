@@ -18,14 +18,16 @@ export class OrdersRepository implements OrderWriterPort, OrdersRepositoryPort {
     return Promise.resolve();
   }
 
-  public listOrders(): readonly Order[] {
-    return [...this.orders.values()];
+  public listOrders(): Promise<readonly Order[]> {
+    return Promise.resolve([...this.orders.values()]);
   }
 
   // Agrupa em uma unica varredura da colecao, independente de quantos ids
   // forem pedidos - e o que permite ao DataLoader (orders-by-user.loader.ts)
   // resolver o field resolver User.orders sem problema de N+1.
-  public listOrdersByUserIds(userIds: readonly string[]): ReadonlyMap<string, readonly Order[]> {
+  public listOrdersByUserIds(
+    userIds: readonly string[]
+  ): Promise<ReadonlyMap<string, readonly Order[]>> {
     const requested = new Set(userIds);
     const grouped = new Map<string, Order[]>();
 
@@ -43,7 +45,7 @@ export class OrdersRepository implements OrderWriterPort, OrdersRepositoryPort {
       }
     }
 
-    return grouped;
+    return Promise.resolve(grouped);
   }
 
   public snapshot(): OrdersSnapshot {

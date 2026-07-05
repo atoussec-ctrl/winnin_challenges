@@ -34,11 +34,11 @@ function createService(): OrdersService {
 describe("OrdersService", () => {
   it("creates users, products and orders", async () => {
     const service = createService();
-    const user = service.createUser({
+    const user = await service.createUser({
       email: "user@example.com",
       name: "User"
     });
-    const product = service.createProduct({
+    const product = await service.createProduct({
       name: "Keyboard",
       price: 150,
       stock: 2
@@ -51,15 +51,15 @@ describe("OrdersService", () => {
 
     expect(order.total).toBe(150);
     expect(order.items[0]?.product.stock).toBe(1);
-    expect(service.listUsers()).toHaveLength(1);
-    expect(service.listProducts()[0]?.stock).toBe(1);
+    expect(await service.listUsers()).toHaveLength(1);
+    expect((await service.listProducts())[0]?.stock).toBe(1);
   });
 
   it("lists orders globally and by user", async () => {
     const service = createService();
-    const firstUser = service.createUser({ email: "first@example.com", name: "First" });
-    const secondUser = service.createUser({ email: "second@example.com", name: "Second" });
-    const product = service.createProduct({ name: "Keyboard", price: 100, stock: 5 });
+    const firstUser = await service.createUser({ email: "first@example.com", name: "First" });
+    const secondUser = await service.createUser({ email: "second@example.com", name: "Second" });
+    const product = await service.createProduct({ name: "Keyboard", price: 100, stock: 5 });
 
     await service.createOrder({
       items: [{ productId: product.id, quantity: 1 }],
@@ -70,22 +70,22 @@ describe("OrdersService", () => {
       userId: secondUser.id
     });
 
-    expect(service.listOrders()).toHaveLength(2);
+    expect(await service.listOrders()).toHaveLength(2);
 
-    const grouped = service.listOrdersByUserIds([firstUser.id, secondUser.id, "missing"]);
+    const grouped = await service.listOrdersByUserIds([firstUser.id, secondUser.id, "missing"]);
 
     expect(grouped.get(firstUser.id)).toHaveLength(1);
     expect(grouped.get(secondUser.id)?.[0]?.total).toBe(200);
     expect(grouped.get("missing")).toEqual([]);
   });
 
-  it("rejects duplicated emails ignoring case", () => {
+  it("rejects duplicated emails ignoring case", async () => {
     const service = createService();
-    service.createUser({ email: "user@example.com", name: "User" });
+    await service.createUser({ email: "user@example.com", name: "User" });
 
-    expect(() => service.createUser({ email: "USER@example.com", name: "Other" })).toThrow(
-      ConflictException
-    );
+    await expect(
+      service.createUser({ email: "USER@example.com", name: "Other" })
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it("rejects orders for unknown users", async () => {
@@ -104,7 +104,7 @@ describe("OrdersService", () => {
     // global (ver domain-error.filter.spec.ts); aqui o service so precisa
     // deixar o erro de dominio passar intacto.
     const service = createService();
-    const user = service.createUser({
+    const user = await service.createUser({
       email: "user@example.com",
       name: "User"
     });
@@ -116,13 +116,13 @@ describe("OrdersService", () => {
       })
     ).rejects.toThrow(ProductNotFoundError);
 
-    expect(service.listProducts()).toEqual([]);
+    expect(await service.listProducts()).toEqual([]);
   });
 
   it("serializes concurrent orders so stock is never oversold", async () => {
     const service = createService();
-    const user = service.createUser({ email: "user@example.com", name: "User" });
-    const product = service.createProduct({ name: "Keyboard", price: 100, stock: 1 });
+    const user = await service.createUser({ email: "user@example.com", name: "User" });
+    const product = await service.createProduct({ name: "Keyboard", price: 100, stock: 1 });
 
     const results = await Promise.allSettled([
       service.createOrder({ items: [{ productId: product.id, quantity: 1 }], userId: user.id }),
@@ -131,17 +131,17 @@ describe("OrdersService", () => {
 
     expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
     expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
-    expect(service.listProducts()[0]?.stock).toBe(0);
-    expect(service.listOrders()).toHaveLength(1);
+    expect((await service.listProducts())[0]?.stock).toBe(0);
+    expect(await service.listOrders()).toHaveLength(1);
   });
 
   it("rejects orders with insufficient stock and rolls back state", async () => {
     const service = createService();
-    const user = service.createUser({
+    const user = await service.createUser({
       email: "user@example.com",
       name: "User"
     });
-    const product = service.createProduct({
+    const product = await service.createProduct({
       name: "Keyboard",
       price: 150,
       stock: 1
@@ -154,12 +154,12 @@ describe("OrdersService", () => {
       })
     ).rejects.toThrow(InsufficientStockError);
 
-    expect(service.listProducts()[0]?.stock).toBe(1);
+    expect((await service.listProducts())[0]?.stock).toBe(1);
   });
 
   it("propagates domain validation errors unchanged", async () => {
     const service = createService();
-    const user = service.createUser({
+    const user = await service.createUser({
       email: "user@example.com",
       name: "User"
     });
@@ -172,7 +172,7 @@ describe("OrdersService", () => {
     ).rejects.toThrow(ValidationDomainError);
   });
 
-  it("depends only on the repository ports, not on their concrete classes", () => {
+  it("depends only on the repository ports, not on their concrete classes", async () => {
     // Fakes minimos que satisfazem as portas mas NAO sao instancias de
     // UsersRepository/ProductsRepository/OrdersRepository (sem os campos
     // privados delas) - so compila se OrdersService aceitar a interface.
@@ -183,23 +183,24 @@ describe("OrdersService", () => {
       name: "Fake"
     };
     const users: UsersRepositoryPort = {
-      findUserById: (userId) => (userId === fakeUser.id ? fakeUser : undefined),
-      hasUserWithEmail: () => false,
-      listUsers: () => [fakeUser],
-      saveUser: () => fakeUser
+      findUserById: (userId) => Promise.resolve(userId === fakeUser.id ? fakeUser : undefined),
+      hasUserWithEmail: () => Promise.resolve(false),
+      listUsers: () => Promise.resolve([fakeUser]),
+      saveUser: () => Promise.resolve(fakeUser)
     };
     const products: ProductsRepositoryPort = {
-      findProductById: () => undefined,
-      listProducts: () => [],
-      saveProduct: (input): StoredProduct => ({
-        createdAt: new Date("2026-07-03T00:00:00.000Z"),
-        id: "product-1",
-        ...input
-      })
+      findProductById: () => Promise.resolve(undefined),
+      listProducts: () => Promise.resolve([]),
+      saveProduct: (input): Promise<StoredProduct> =>
+        Promise.resolve({
+          createdAt: new Date("2026-07-03T00:00:00.000Z"),
+          id: "product-1",
+          ...input
+        })
     };
     const orders: OrdersRepositoryPort = {
-      listOrders: () => [],
-      listOrdersByUserIds: () => new Map()
+      listOrders: () => Promise.resolve([]),
+      listOrdersByUserIds: () => Promise.resolve(new Map())
     };
     const service = new OrdersService(
       users,
@@ -208,11 +209,11 @@ describe("OrdersService", () => {
       new CreateOrderUseCase(new OrderUnitOfWork(new ProductsRepository(), new OrdersRepository()))
     );
 
-    expect(service.listUsers()).toEqual([
+    expect(await service.listUsers()).toEqual([
       { createdAt: fakeUser.createdAt, email: fakeUser.email, id: fakeUser.id, name: fakeUser.name }
     ]);
-    expect(service.listProducts()).toEqual([]);
-    expect(service.listOrders()).toEqual([]);
+    expect(await service.listProducts()).toEqual([]);
+    expect(await service.listOrders()).toEqual([]);
   });
 
   it("rethrows unknown errors from the unit of work untouched", async () => {
@@ -226,7 +227,7 @@ describe("OrdersService", () => {
       new OrdersRepository(),
       new CreateOrderUseCase(brokenUnitOfWork)
     );
-    const user = service.createUser({ email: "user@example.com", name: "User" });
+    const user = await service.createUser({ email: "user@example.com", name: "User" });
 
     await expect(
       service.createOrder({
@@ -236,7 +237,7 @@ describe("OrdersService", () => {
     ).rejects.toBe(failure);
   });
 
-  it("guards against missing users while mapping stored orders", () => {
+  it("guards against missing users while mapping stored orders", async () => {
     const service = createService();
     const mapOrder = (service as unknown as {
       toOrderModel(order: {
@@ -245,10 +246,10 @@ describe("OrdersService", () => {
         items: readonly [];
         totalCents: number;
         userId: string;
-      }): unknown;
+      }): Promise<unknown>;
     }).toOrderModel.bind(service);
 
-    expect(() =>
+    await expect(
       mapOrder({
         createdAt: new Date("2026-07-03T00:00:00.000Z"),
         id: "order-1",
@@ -256,12 +257,12 @@ describe("OrdersService", () => {
         totalCents: 0,
         userId: "missing"
       })
-    ).toThrow("User missing was not found.");
+    ).rejects.toThrow("User missing was not found.");
   });
 
-  it("guards against missing products while mapping stored orders", () => {
+  it("guards against missing products while mapping stored orders", async () => {
     const service = createService();
-    const user = service.createUser({
+    const user = await service.createUser({
       email: "user@example.com",
       name: "User"
     });
@@ -279,10 +280,10 @@ describe("OrdersService", () => {
         ];
         totalCents: number;
         userId: string;
-      }): unknown;
+      }): Promise<unknown>;
     }).toOrderModel.bind(service);
 
-    expect(() =>
+    await expect(
       mapOrder({
         createdAt: new Date("2026-07-03T00:00:00.000Z"),
         id: "order-1",
@@ -297,6 +298,6 @@ describe("OrdersService", () => {
         totalCents: 15000,
         userId: user.id
       })
-    ).toThrow("Product missing was not found.");
+    ).rejects.toThrow("Product missing was not found.");
   });
 });

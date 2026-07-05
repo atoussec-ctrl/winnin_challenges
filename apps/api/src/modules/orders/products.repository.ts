@@ -13,7 +13,7 @@ export class ProductsRepository implements ProductInventoryPort, ProductsReposit
     readonly name: string;
     readonly priceCents: number;
     readonly stock: number;
-  }): StoredProduct {
+  }): Promise<StoredProduct> {
     const product: StoredProduct = {
       createdAt: new Date(),
       id: `product-${this.sequence++}`,
@@ -23,15 +23,15 @@ export class ProductsRepository implements ProductInventoryPort, ProductsReposit
     };
 
     this.products.set(product.id, product);
-    return product;
+    return Promise.resolve(product);
   }
 
-  public findProductById(productId: string): StoredProduct | undefined {
-    return this.products.get(productId);
+  public findProductById(productId: string): Promise<StoredProduct | undefined> {
+    return Promise.resolve(this.products.get(productId));
   }
 
-  public listProducts(): readonly StoredProduct[] {
-    return [...this.products.values()];
+  public listProducts(): Promise<readonly StoredProduct[]> {
+    return Promise.resolve([...this.products.values()]);
   }
 
   public findProductsForUpdate(

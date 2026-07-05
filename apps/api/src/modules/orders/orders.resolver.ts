@@ -18,17 +18,17 @@ export class OrdersResolver {
   ) {}
 
   @Query(() => [UserModel])
-  public users(): UserModel[] {
+  public users(): Promise<UserModel[]> {
     return this.ordersService.listUsers();
   }
 
   @Query(() => [ProductModel])
-  public products(): ProductModel[] {
+  public products(): Promise<ProductModel[]> {
     return this.ordersService.listProducts();
   }
 
   @Query(() => [OrderModel])
-  public orders(): OrderModel[] {
+  public orders(): Promise<OrderModel[]> {
     return this.ordersService.listOrders();
   }
 
@@ -40,12 +40,12 @@ export class OrdersResolver {
   }
 
   @Mutation(() => UserModel)
-  public createUser(@Args("input") input: CreateUserInput): UserModel {
+  public createUser(@Args("input") input: CreateUserInput): Promise<UserModel> {
     return this.ordersService.createUser(input);
   }
 
   @Mutation(() => ProductModel)
-  public createProduct(@Args("input") input: CreateProductInput): ProductModel {
+  public createProduct(@Args("input") input: CreateProductInput): Promise<ProductModel> {
     return this.ordersService.createProduct(input);
   }
 

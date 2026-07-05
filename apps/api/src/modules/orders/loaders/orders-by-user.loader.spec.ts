@@ -21,9 +21,9 @@ function createService(): OrdersService {
 describe("OrdersByUserLoader", () => {
   it("batches loads for multiple users requested in the same tick into a single service call", async () => {
     const service = createService();
-    const user = service.createUser({ email: "user@example.com", name: "User" });
-    const other = service.createUser({ email: "other@example.com", name: "Other" });
-    const product = service.createProduct({ name: "Keyboard", price: 100, stock: 5 });
+    const user = await service.createUser({ email: "user@example.com", name: "User" });
+    const other = await service.createUser({ email: "other@example.com", name: "Other" });
+    const product = await service.createProduct({ name: "Keyboard", price: 100, stock: 5 });
     await service.createOrder({
       items: [{ productId: product.id, quantity: 1 }],
       userId: user.id
@@ -45,7 +45,7 @@ describe("OrdersByUserLoader", () => {
 
   it("returns an empty array for a user without orders", async () => {
     const service = createService();
-    const user = service.createUser({ email: "user@example.com", name: "User" });
+    const user = await service.createUser({ email: "user@example.com", name: "User" });
     const loader = new OrdersByUserLoader(service);
 
     expect(await loader.load(user.id)).toEqual([]);

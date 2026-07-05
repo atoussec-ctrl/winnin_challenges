@@ -27,7 +27,7 @@ describe("OrdersRepository", () => {
 
     await repository.save(order);
 
-    expect(repository.listOrders()).toEqual([order]);
+    expect(await repository.listOrders()).toEqual([order]);
   });
 
   it("groups orders by user id in a single pass for a batch of ids", async () => {
@@ -39,7 +39,7 @@ describe("OrdersRepository", () => {
     await repository.save(secondOrder);
     await repository.save(thirdOrder);
 
-    const grouped = repository.listOrdersByUserIds(["user-1", "user-2", "user-3"]);
+    const grouped = await repository.listOrdersByUserIds(["user-1", "user-2", "user-3"]);
 
     expect(grouped.get("user-1")).toEqual([firstOrder, thirdOrder]);
     expect(grouped.get("user-2")).toEqual([secondOrder]);
@@ -54,11 +54,11 @@ describe("OrdersRepository", () => {
 
       const snapshot = repository.snapshot();
       await repository.save(buildOrder({ id: "order-2" }));
-      expect(repository.listOrders()).toHaveLength(2);
+      expect(await repository.listOrders()).toHaveLength(2);
 
       repository.restore(snapshot);
 
-      expect(repository.listOrders()).toEqual([order]);
+      expect(await repository.listOrders()).toEqual([order]);
     });
   });
 });

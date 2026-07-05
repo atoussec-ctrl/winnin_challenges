@@ -10,9 +10,9 @@ import { OrdersService } from "../orders.service";
 @Injectable({ scope: Scope.REQUEST })
 export class OrdersByUserLoader extends DataLoader<string, OrderModel[]> {
   public constructor(ordersService: OrdersService) {
-    super((userIds) => {
-      const grouped = ordersService.listOrdersByUserIds(userIds);
-      return Promise.resolve(userIds.map((userId) => grouped.get(userId) ?? []));
+    super(async (userIds) => {
+      const grouped = await ordersService.listOrdersByUserIds(userIds);
+      return userIds.map((userId) => grouped.get(userId) ?? []);
     });
   }
 }

@@ -6,7 +6,7 @@ export class UsersRepository implements UsersRepositoryPort {
   private readonly users = new Map<string, StoredUser>();
   private sequence = 1;
 
-  public saveUser(input: { readonly name: string; readonly email: string }): StoredUser {
+  public saveUser(input: { readonly name: string; readonly email: string }): Promise<StoredUser> {
     const user: StoredUser = {
       createdAt: new Date(),
       email: input.email,
@@ -15,19 +15,21 @@ export class UsersRepository implements UsersRepositoryPort {
     };
 
     this.users.set(user.id, user);
-    return user;
+    return Promise.resolve(user);
   }
 
-  public findUserById(userId: string): StoredUser | undefined {
-    return this.users.get(userId);
+  public findUserById(userId: string): Promise<StoredUser | undefined> {
+    return Promise.resolve(this.users.get(userId));
   }
 
-  public hasUserWithEmail(email: string): boolean {
+  public hasUserWithEmail(email: string): Promise<boolean> {
     const normalized = email.trim().toLowerCase();
-    return [...this.users.values()].some((user) => user.email.toLowerCase() === normalized);
+    return Promise.resolve(
+      [...this.users.values()].some((user) => user.email.toLowerCase() === normalized)
+    );
   }
 
-  public listUsers(): readonly StoredUser[] {
-    return [...this.users.values()];
+  public listUsers(): Promise<readonly StoredUser[]> {
+    return Promise.resolve([...this.users.values()]);
   }
 }

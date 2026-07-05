@@ -20,10 +20,10 @@ export interface StoredProduct {
 // que descrevem o que o caso de uso precisa dentro de uma transacao; estas
 // aqui descrevem o que o service precisa para CRUD/consulta fora dela.
 export interface UsersRepositoryPort {
-  saveUser(input: { readonly name: string; readonly email: string }): StoredUser;
-  findUserById(userId: string): StoredUser | undefined;
-  hasUserWithEmail(email: string): boolean;
-  listUsers(): readonly StoredUser[];
+  saveUser(input: { readonly name: string; readonly email: string }): Promise<StoredUser>;
+  findUserById(userId: string): Promise<StoredUser | undefined>;
+  hasUserWithEmail(email: string): Promise<boolean>;
+  listUsers(): Promise<readonly StoredUser[]>;
 }
 
 export interface ProductsRepositoryPort {
@@ -31,16 +31,19 @@ export interface ProductsRepositoryPort {
     readonly name: string;
     readonly priceCents: number;
     readonly stock: number;
-  }): StoredProduct;
-  findProductById(productId: string): StoredProduct | undefined;
-  listProducts(): readonly StoredProduct[];
+  }): Promise<StoredProduct>;
+  findProductById(productId: string): Promise<StoredProduct | undefined>;
+  listProducts(): Promise<readonly StoredProduct[]>;
 }
 
 export interface OrdersRepositoryPort {
-  listOrders(): readonly Order[];
-  listOrdersByUserIds(userIds: readonly string[]): ReadonlyMap<string, readonly Order[]>;
+  listOrders(): Promise<readonly Order[]>;
+  listOrdersByUserIds(
+    userIds: readonly string[]
+  ): Promise<ReadonlyMap<string, readonly Order[]>>;
 }
 
 export const USERS_REPOSITORY = Symbol("USERS_REPOSITORY");
 export const PRODUCTS_REPOSITORY = Symbol("PRODUCTS_REPOSITORY");
 export const ORDERS_REPOSITORY = Symbol("ORDERS_REPOSITORY");
+export const ORDER_UNIT_OF_WORK = Symbol("ORDER_UNIT_OF_WORK");

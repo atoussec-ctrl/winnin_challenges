@@ -39,7 +39,7 @@ describe("OrderUnitOfWork", () => {
   it("rolls back a stock debit that already happened once a later step fails", async () => {
     const products = new ProductsRepository();
     const orders = new OrdersRepository();
-    const product = products.saveProduct({ name: "Keyboard", priceCents: 15_000, stock: 5 });
+    const product = await products.saveProduct({ name: "Keyboard", priceCents: 15_000, stock: 5 });
     const unitOfWork = new OrderUnitOfWork(products, orders);
     const failure = new Error("payment gateway unavailable");
 
@@ -53,8 +53,8 @@ describe("OrderUnitOfWork", () => {
       })
     ).rejects.toBe(failure);
 
-    expect(products.findProductById(product.id)?.stock).toBe(5);
-    expect(orders.listOrders()).toEqual([]);
+    expect((await products.findProductById(product.id))?.stock).toBe(5);
+    expect(await orders.listOrders()).toEqual([]);
   });
 
   it("rolls back an order that was already saved once a later step fails", async () => {
@@ -76,13 +76,13 @@ describe("OrderUnitOfWork", () => {
       })
     ).rejects.toBe(failure);
 
-    expect(orders.listOrders()).toEqual([]);
+    expect(await orders.listOrders()).toEqual([]);
   });
 
   it("keeps the committed state when the work succeeds", async () => {
     const products = new ProductsRepository();
     const orders = new OrdersRepository();
-    const product = products.saveProduct({ name: "Keyboard", priceCents: 15_000, stock: 5 });
+    const product = await products.saveProduct({ name: "Keyboard", priceCents: 15_000, stock: 5 });
     const unitOfWork = new OrderUnitOfWork(products, orders);
 
     await unitOfWork.execute(async (context) => {
@@ -96,7 +96,7 @@ describe("OrderUnitOfWork", () => {
       });
     });
 
-    expect(products.findProductById(product.id)?.stock).toBe(3);
-    expect(orders.listOrders()).toHaveLength(1);
+    expect((await products.findProductById(product.id))?.stock).toBe(3);
+    expect(await orders.listOrders()).toHaveLength(1);
   });
 });
