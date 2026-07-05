@@ -40,7 +40,7 @@ Status: **TODO** · **PARCIAL** · **FEITO**.
 |---|---|---|---|---|---|
 | FE-01 | P2 | Dark mode com alternador | paleta existe, sem `ThemeProvider` | provider + toggle persistido; teste do hook de tema | TODO |
 | FE-02 | P2 | `next/image` no grid de animes | `anime-grid.tsx:22` usa `<img>` | `next/image` com `remotePatterns` (`s4.anilist.co`) e `sizes` | TODO |
-| FE-03 | P2 | Error Boundary (App Router) | sem `app/error.tsx`/`global-error.tsx` | `error.tsx` + `global-error.tsx` com fallback reaproveitavel e `reset()` | TODO |
+| FE-03 | P2 | Error Boundary (App Router) | sem `app/error.tsx`/`global-error.tsx` | `error.tsx` + `global-error.tsx` com fallback reaproveitavel e `reset()` | FEITO — `ErrorFallback` (molecule) reaproveitado por `app/error.tsx` e `app/global-error.tsx`; testes com RTL |
 | FE-04 | P2 | Fidelidade ao Figma | sem acesso local ao arquivo | obter o Figma e conferir tokens/spacing/tipografia; registrar divergencias | TODO |
 | FE-05 | P2 | E2E do app de animes | Playwright cobre so ge.globo | specs E2E de busca/filtro/cor do score no app de animes | TODO |
 | FE-06 | P2 | Deploy (Vercel/Netlify) | nao publicado | app publicado + link no README; variaveis de ambiente configuradas | TODO |

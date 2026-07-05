@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // Runtime JSX automatico (react/jsx-runtime) para renderizar componentes nos
+  // testes sem precisar importar React em cada arquivo.
+  esbuild: { jsx: "automatic" },
   test: {
     coverage: {
       all: true,
