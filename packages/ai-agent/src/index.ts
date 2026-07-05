@@ -13,6 +13,7 @@ export * from "./llm/llm-analysis-model";
 export * from "./llm/llm-observability.port";
 export * from "./llm/llm-provider.factory";
 export * from "./llm/llm.port";
+export * from "./llm/resilience";
 export * from "./tools/analysis-tools";
 export * from "./tools/base-tool";
 export * from "./tools/extract-section.tool";

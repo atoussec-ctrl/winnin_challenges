@@ -24,7 +24,7 @@ Status: **TODO** · **PARCIAL** · **FEITO**.
 | AI-03 | P1 | Function calling nativo no orquestrador | `orchestrator-agent.ts` roteia por `includes()` | roteamento por tool/function calling do LLM atras de `IntentRouterPort` (Strategy), com fallback keyword; teste de roteamento | TODO |
 | AI-04 | P1 | Persistencia de threads em SQLite | threads em `Map` (`ai.service.ts`) | adapter SQLite atras de `ThreadRepositoryPort`; volume no compose; teste de persistencia | TODO |
 | AI-05 | P2 | `make run` executa as 5 perguntas | Makefile `run` = `pnpm dev` | target/script que dispara as 5 perguntas via API e imprime as respostas | TODO |
-| AI-07 | P2 | Circuit breaker/timeout nos clients de LLM | chamadas diretas sem timeout/breaker | timeout + retry (5xx/rede) + breaker por provider; teste de timeout | TODO |
+| AI-07 | P2 | Circuit breaker/timeout nos clients de LLM | chamadas diretas sem timeout/breaker | timeout + retry (5xx/rede) + breaker por provider; teste de timeout | PARCIAL — `withResilience()` (timeout + retry com backoff) nos dois adapters + defaults de producao na factory; falta o circuit breaker por provider |
 
 ## Backend de pedidos
 
@@ -44,14 +44,14 @@ Status: **TODO** · **PARCIAL** · **FEITO**.
 | FE-04 | P2 | Fidelidade ao Figma | sem acesso local ao arquivo | obter o Figma e conferir tokens/spacing/tipografia; registrar divergencias | TODO |
 | FE-05 | P2 | E2E do app de animes | Playwright cobre so ge.globo | specs E2E de busca/filtro/cor do score no app de animes | TODO |
 | FE-06 | P2 | Deploy (Vercel/Netlify) | nao publicado | app publicado + link no README; variaveis de ambiente configuradas | TODO |
-| FE-07 | P2 | Retry/timeout no fetch do AniList | `graphql-client.ts` sem `AbortController` | timeout configuravel + retry para rede/5xx; teste de timeout | TODO |
+| FE-07 | P2 | Retry/timeout no fetch do AniList | `graphql-client.ts` sem `AbortController` | timeout configuravel + retry para rede/5xx; teste de timeout | FEITO |
 
 ## Seguranca
 
 | ID | Prioridade | Item | Evidencia | DoD | Status |
 |---|---|---|---|---|---|
 | SEC-01 | P1 | Zerar vulnerabilidades de dependencia | `pnpm audit`: 3 high, 7 moderate (langsmith/ws/multer) | `pnpm audit --audit-level=high` sem high/critical | PARCIAL — multer>=2.2.0 e ws>=8.21.0 via `pnpm.overrides` (2 highs eliminados); 4 advisories da langsmith em `auditConfig.ignoreGhsas` com justificativa. Falta o bump major coordenado de `@langchain/*` (que fixa langsmith@^0.3.67) para remover de vez |
-| SEC-02 | P1 | Headers de seguranca no frontend (CSP/HSTS) | `next.config.mjs` sem `headers()` | `headers()` com HSTS, `X-Content-Type-Options`, `X-Frame-Options`, CSP report-only liberando `s4.anilist.co` | TODO |
+| SEC-02 | P1 | Headers de seguranca no frontend (CSP/HSTS) | `next.config.mjs` sem `headers()` | `headers()` com HSTS, `X-Content-Type-Options`, `X-Frame-Options`, CSP report-only liberando `s4.anilist.co` | FEITO — CSP em Report-Only; enforcing com nonce por request (via middleware) fica como follow-up |
 | SEC-03 | P2 | Validacao de env vars por schema | `process.env` lido ad hoc | `@nestjs/config` com `validationSchema` (Zod/Joi) falhando no boot | TODO |
 | SEC-04 | P2 | `helmet` CSP para o Swagger | CSP do Helmet desligada (`contentSecurityPolicy: false`) | CSP compativel com o Swagger UI em `/docs` em vez de desligada | TODO |
 
@@ -59,7 +59,7 @@ Status: **TODO** · **PARCIAL** · **FEITO**.
 
 | ID | Prioridade | Item | Evidencia | DoD | Status |
 |---|---|---|---|---|---|
-| ARCH-01 | P1 | Graceful shutdown | `main.ts` sem `enableShutdownHooks()` | `enableShutdownHooks()` + `onModuleDestroy` fechando pools quando BE-01/AI-02/AI-04 existirem | TODO |
+| ARCH-01 | P1 | Graceful shutdown | `main.ts` sem `enableShutdownHooks()` | `enableShutdownHooks()` + `onModuleDestroy` fechando pools quando BE-01/AI-02/AI-04 existirem | FEITO — `enableShutdownHooks()` ativo; `onModuleDestroy` para fechar pools chega junto com BE-01/AI-02/AI-04 |
 | ARCH-02 | P2 | `@next/eslint-plugin-next` no lint | ausente em `eslint.config.mjs` | plugin adicionado so no escopo `apps/web`; lint verde | FEITO — surfaces FE-02 (`<img>`) como warning |
 | ARCH-03 | P2 | ADRs para decisoes estruturais | so `adr/0001` | ADR por decisao grande implementada (DataLoader, provider de LLM, Postgres, SQLite) | PARCIAL |
 

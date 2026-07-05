@@ -21,6 +21,9 @@ async function bootstrap(): Promise<void> {
   // Validacao declarativa dos DTOs (class-validator) para GraphQL e REST;
   // substitui a validacao manual que existia dentro dos services.
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  // Drena requisicoes em voo e dispara onModuleDestroy (fechar pools/clients)
+  // ao receber SIGTERM/SIGINT, em vez de matar o processo abruptamente.
+  app.enableShutdownHooks();
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle("Desafio Winnin API")
