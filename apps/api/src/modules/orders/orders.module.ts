@@ -1,34 +1,63 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER } from "@nestjs/core";
-import { CreateOrderUseCase } from "@desafio/domain";
+import { CreateOrderUseCase, type OrderUnitOfWorkPort } from "@desafio/domain";
 import { DomainErrorFilter } from "./domain-error.filter";
 import { OrdersByUserLoader } from "./loaders/orders-by-user.loader";
 import { OrderUnitOfWork } from "./order-unit-of-work";
 import { OrdersRepository } from "./orders.repository";
 import { OrdersResolver } from "./orders.resolver";
 import { OrdersService } from "./orders.service";
+import { PgDatabase } from "./persistence/postgres/pg-database";
+import { PgOrderUnitOfWork } from "./persistence/postgres/pg-order-unit-of-work";
+import { PgOrdersRepository } from "./persistence/postgres/pg-orders.repository";
+import { PgProductsRepository } from "./persistence/postgres/pg-products.repository";
+import { PgUsersRepository } from "./persistence/postgres/pg-users.repository";
 import { ProductsRepository } from "./products.repository";
-import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY, USERS_REPOSITORY } from "./repository.ports";
+import {
+  ORDER_UNIT_OF_WORK,
+  ORDERS_REPOSITORY,
+  PRODUCTS_REPOSITORY,
+  USERS_REPOSITORY
+} from "./repository.ports";
 import { UsersRepository } from "./users.repository";
 
 @Module({
   providers: [
-    // Classes concretas: usadas pela OrderUnitOfWork (precisa de snapshot/restore,
-    // que nao faz parte da porta publica consumida pelo OrdersService).
+    // Ciclo de vida do pool do Postgres. Sem DATABASE_URL, `pool` e null e os
+    // tokens abaixo caem nos repositorios in-memory - a mesma arquitetura de
+    // portas serve os dois backends sem tocar em OrdersService.
+    PgDatabase,
     UsersRepository,
     ProductsRepository,
     OrdersRepository,
-    // Tokens de porta: o OrdersService depende so destes, nunca das classes
-    // acima. Trocar a implementacao in-memory por Postgres exige mudar apenas
-    // o useExisting/useClass abaixo, sem tocar em OrdersService.
-    { provide: USERS_REPOSITORY, useExisting: UsersRepository },
-    { provide: PRODUCTS_REPOSITORY, useExisting: ProductsRepository },
-    { provide: ORDERS_REPOSITORY, useExisting: OrdersRepository },
-    OrderUnitOfWork,
     {
-      inject: [OrderUnitOfWork],
+      inject: [PgDatabase, UsersRepository],
+      provide: USERS_REPOSITORY,
+      useFactory: (db: PgDatabase, memory: UsersRepository) =>
+        db.pool ? new PgUsersRepository(db.pool) : memory
+    },
+    {
+      inject: [PgDatabase, ProductsRepository],
+      provide: PRODUCTS_REPOSITORY,
+      useFactory: (db: PgDatabase, memory: ProductsRepository) =>
+        db.pool ? new PgProductsRepository(db.pool) : memory
+    },
+    {
+      inject: [PgDatabase, OrdersRepository],
+      provide: ORDERS_REPOSITORY,
+      useFactory: (db: PgDatabase, memory: OrdersRepository) =>
+        db.pool ? new PgOrdersRepository(db.pool) : memory
+    },
+    {
+      inject: [PgDatabase, ProductsRepository, OrdersRepository],
+      provide: ORDER_UNIT_OF_WORK,
+      useFactory: (db: PgDatabase, products: ProductsRepository, orders: OrdersRepository) =>
+        db.pool ? new PgOrderUnitOfWork(db.pool) : new OrderUnitOfWork(products, orders)
+    },
+    {
+      inject: [ORDER_UNIT_OF_WORK],
       provide: CreateOrderUseCase,
-      useFactory: (unitOfWork: OrderUnitOfWork) => new CreateOrderUseCase(unitOfWork)
+      useFactory: (unitOfWork: OrderUnitOfWorkPort) => new CreateOrderUseCase(unitOfWork)
     },
     // Global: traduz qualquer DomainError lancado por qualquer resolver/controller.
     { provide: APP_FILTER, useClass: DomainErrorFilter },
@@ -38,4 +67,3 @@ import { UsersRepository } from "./users.repository";
   ]
 })
 export class OrdersModule {}
-

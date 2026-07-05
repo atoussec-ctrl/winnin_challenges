@@ -30,8 +30,8 @@ Status: **TODO** · **PARCIAL** · **FEITO**.
 
 | ID | Prioridade | Item | Evidencia | DoD | Status |
 |---|---|---|---|---|---|
-| BE-01 | P1 | Adapter Postgres com transacao real | in-memory `Map`; `DATABASE_URL` nao lido | adapter (Prisma/TypeORM) atras das portas ja existentes; `SELECT ... FOR UPDATE` por linha; migracao com o schema de `BACKEND.md`; teste de concorrencia contra o adapter real | TODO |
-| BE-02 | P2 | Lock por produto no lugar do mutex global | mutex serializa toda criacao de pedido | apos BE-01, lock por linha permite paralelismo entre produtos distintos; teste de concorrencia entre produtos diferentes | TODO |
+| BE-01 | P1 | Adapter Postgres com transacao real | in-memory `Map`; `DATABASE_URL` nao lido | adapter (Prisma/TypeORM) atras das portas ja existentes; `SELECT ... FOR UPDATE` por linha; migracao com o schema de `BACKEND.md`; teste de concorrencia contra o adapter real | FEITO — adapter `pg` (SQL a mao) selecionado por `DATABASE_URL`; `PgOrderUnitOfWork` com transacao + `SELECT ... FOR UPDATE`; testes de integracao (incl. concorrencia) + job de CI. Ver ADR 0002 |
+| BE-02 | P2 | Lock por produto no lugar do mutex global | mutex serializa toda criacao de pedido | apos BE-01, lock por linha permite paralelismo entre produtos distintos; teste de concorrencia entre produtos diferentes | FEITO (backend Postgres) — `SELECT ... FOR UPDATE` trava so as linhas do pedido; produtos distintos correm em paralelo. O path in-memory mantem o mutex global |
 | BE-03 | P2 | Paginacao cursor-based nas listagens | `users`/`products`/`orders` sem `first`/`after` | conexao Relay-style; repositorios com `list({ limit, cursor })`; testes | TODO |
 
 ## Frontend
