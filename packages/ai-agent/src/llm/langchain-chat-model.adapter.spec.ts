@@ -79,6 +79,22 @@ describe("LangChainChatModelAdapter", () => {
     expect(recordCall).toHaveBeenCalledWith(expect.objectContaining({ outcome: "error" }));
   });
 
+  it("retries a transient failure when resilience is configured", async () => {
+    const invoke = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("transient"))
+      .mockResolvedValueOnce({ content: "recovered" });
+    const adapter = new LangChainChatModelAdapter(
+      { invoke },
+      { model: "gpt-test", provider: "openai", resilience: { retries: 1, retryDelayMs: 1 } }
+    );
+
+    const result = await adapter.complete({ messages: [{ content: "hi", role: "user" }] });
+
+    expect(result.content).toBe("recovered");
+    expect(invoke).toHaveBeenCalledTimes(2);
+  });
+
   it("maps chat roles to the corresponding LangChain message classes", async () => {
     const chatModel = fakeChatModel({ content: "ok" });
     const adapter = new LangChainChatModelAdapter(chatModel, { model: "gpt-test", provider: "openai" });

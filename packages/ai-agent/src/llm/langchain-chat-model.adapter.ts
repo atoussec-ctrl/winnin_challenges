@@ -2,6 +2,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { AIMessage, HumanMessage, SystemMessage, type BaseMessage } from "@langchain/core/messages";
 import { noopLlmObservability, type LlmObservabilityPort } from "./llm-observability.port";
 import type { ChatMessage, LlmCompletion, LlmCompletionInput, LlmPort } from "./llm.port";
+import { withResilience, type ResilienceOptions } from "./resilience";
 
 // Interface minima que este adapter realmente precisa de um BaseChatModel do
 // LangChain - evita acoplar a assinatura publica deste modulo aos demais
@@ -12,6 +13,7 @@ export interface LangChainChatModelAdapterOptions {
   readonly provider: string;
   readonly model: string;
   readonly observability?: LlmObservabilityPort;
+  readonly resilience?: ResilienceOptions;
 }
 
 function toLangChainMessage(message: ChatMessage): BaseMessage {
@@ -46,7 +48,10 @@ export class LangChainChatModelAdapter implements LlmPort {
     const startedAt = Date.now();
 
     try {
-      const result = await this.chatModel.invoke(input.messages.map(toLangChainMessage));
+      const result = await withResilience(
+        () => this.chatModel.invoke(input.messages.map(toLangChainMessage)),
+        this.options.resilience
+      );
       this.recordCall(startedAt, "success");
 
       const usage = result.usage_metadata;

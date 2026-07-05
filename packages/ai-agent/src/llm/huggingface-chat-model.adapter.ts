@@ -1,6 +1,7 @@
 import type { ChatCompletionInput, ChatCompletionOutput } from "@huggingface/tasks";
 import { noopLlmObservability, type LlmObservabilityPort } from "./llm-observability.port";
 import type { LlmCompletion, LlmCompletionInput, LlmPort } from "./llm.port";
+import { withResilience, type ResilienceOptions } from "./resilience";
 
 // Interface minima usada do InferenceClient (@huggingface/inference) - o
 // endpoint de chat completion e compativel com o formato OpenAI.
@@ -11,6 +12,7 @@ export interface HuggingFaceInferenceClient {
 export interface HuggingFaceChatModelAdapterOptions {
   readonly model: string;
   readonly observability?: LlmObservabilityPort;
+  readonly resilience?: ResilienceOptions;
 }
 
 // A HuggingFace Inference API nao e um BaseChatModel do LangChain, entao nao
@@ -30,13 +32,17 @@ export class HuggingFaceChatModelAdapter implements LlmPort {
     const startedAt = Date.now();
 
     try {
-      const output = await this.client.chatCompletion({
-        messages: input.messages.map((message) => ({
-          content: message.content,
-          role: message.role
-        })),
-        model: this.options.model
-      });
+      const output = await withResilience(
+        () =>
+          this.client.chatCompletion({
+            messages: input.messages.map((message) => ({
+              content: message.content,
+              role: message.role
+            })),
+            model: this.options.model
+          }),
+        this.options.resilience
+      );
       this.recordCall(startedAt, "success");
 
       return {

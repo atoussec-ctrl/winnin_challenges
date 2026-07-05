@@ -5,8 +5,17 @@ import { HuggingFaceChatModelAdapter } from "./huggingface-chat-model.adapter";
 import { LangChainChatModelAdapter } from "./langchain-chat-model.adapter";
 import type { LlmObservabilityPort } from "./llm-observability.port";
 import type { LlmPort } from "./llm.port";
+import type { ResilienceOptions } from "./resilience";
 
 export type LlmProvider = "openai" | "openrouter" | "huggingface" | "ollama";
+
+// Defaults de producao: uma chamada de LLM lenta nao pode segurar a request
+// para sempre, e falhas transitorias de rede merecem uma nova tentativa.
+const DEFAULT_RESILIENCE: ResilienceOptions = {
+  retries: 2,
+  retryDelayMs: 500,
+  timeoutMs: 30_000
+};
 
 const KNOWN_PROVIDERS: readonly LlmProvider[] = ["openai", "openrouter", "huggingface", "ollama"];
 
@@ -68,7 +77,7 @@ export function createChatModel(env: LlmClientEnv, observability?: LlmObservabil
     case "openai":
       return new LangChainChatModelAdapter(
         new ChatOpenAI({ apiKey: requireEnv(env.OPENAI_API_KEY, "OPENAI_API_KEY"), model }),
-        { model, observability, provider }
+        { model, observability, provider, resilience: DEFAULT_RESILIENCE }
       );
 
     case "openrouter":
@@ -78,19 +87,19 @@ export function createChatModel(env: LlmClientEnv, observability?: LlmObservabil
           configuration: { baseURL: OPENROUTER_BASE_URL },
           model
         }),
-        { model, observability, provider }
+        { model, observability, provider, resilience: DEFAULT_RESILIENCE }
       );
 
     case "ollama":
       return new LangChainChatModelAdapter(
         new ChatOllama({ baseUrl: env.OLLAMA_BASE_URL ?? DEFAULT_OLLAMA_BASE_URL, model }),
-        { model, observability, provider }
+        { model, observability, provider, resilience: DEFAULT_RESILIENCE }
       );
 
     case "huggingface":
       return new HuggingFaceChatModelAdapter(
         new InferenceClient(requireEnv(env.HUGGINGFACE_API_KEY, "HUGGINGFACE_API_KEY")),
-        { model, observability }
+        { model, observability, resilience: DEFAULT_RESILIENCE }
       );
   }
 }
