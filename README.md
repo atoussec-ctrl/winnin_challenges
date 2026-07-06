@@ -21,6 +21,9 @@ Este repositorio consolida os desafios de Backend, Frontend, Data Science/RAG e 
 - [Conformidade com os desafios e estado atual](docs/14-conformidade-desafios.md)
 - [Backlog priorizado](docs/15-backlog.md)
 - [Roadmap](docs/16-roadmap.md)
+- [Melhorias estruturais: analise pos-consolidacao](docs/17-melhorias-estruturais.md)
+- [Spec to task - proximas melhorias](docs/18-spec-to-task-melhorias.md)
+- [Variaveis de ambiente e API keys](docs/19-env-e-api-keys.md)
 - [ADR 0001 - TypeScript monorepo](docs/adr/0001-typescript-monorepo.md)
 - [ADR 0002 - Persistencia em Postgres](docs/adr/0002-postgres-persistence.md)
 
