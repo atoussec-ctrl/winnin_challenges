@@ -36,7 +36,6 @@ apps/
 packages/
   domain/    regras puras de pedidos, produtos e usuarios
   ai-agent/  contratos, tools e agentes RAG
-  shared/    utilitarios compartilhados
   testing/   builders e helpers de teste
 ```
 

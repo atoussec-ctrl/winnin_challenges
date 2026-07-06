@@ -13,7 +13,6 @@ O projeto sera composto por:
 - `apps/qa`: Playwright para BDD/E2E e testes de API ServeRest.
 - `packages/domain`: regras de negocio puras de pedidos, produtos e usuarios.
 - `packages/ai-agent`: agentes, tools, contratos RAG, threads e ingestao.
-- `packages/shared`: tipos e utilitarios compartilhados.
 - `packages/testing`: builders, factories e helpers de teste.
 
 ## Usuarios e Jornadas

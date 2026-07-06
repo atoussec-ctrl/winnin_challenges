@@ -20,9 +20,6 @@
                                           "@desafio/domain":  [
                                                                   "packages/domain/src/index.ts"
                                                               ],
-                                          "@desafio/shared":  [
-                                                                  "packages/shared/src/index.ts"
-                                                              ],
                                           "@desafio/testing":  [
                                                                    "packages/testing/src/index.ts"
                                                                ]

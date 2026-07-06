@@ -12,7 +12,6 @@ apps/
 packages/
   domain/   regras puras de usuarios, produtos e pedidos
   ai-agent/ agentes, tools, ingestao e contratos RAG
-  shared/   tipos e utilitarios transversais
   testing/  factories e helpers de teste
 docs/
   analise, specs, ADRs, diagramas e guias
@@ -45,8 +44,9 @@ Camadas:
 
 ## DRY e KISS
 
-- Compartilhar tipos realmente reutilizados em `packages/shared`.
-- Evitar helpers genericos antes de haver repeticao real.
+- Evitar helpers genericos antes de haver repeticao real (por isso o pacote de
+  utilitarios compartilhados foi removido enquanto nao havia consumidores).
+- Preferir tipos/contratos junto do agregado que os usa a um pacote guarda-chuva.
 - Preferir fluxo simples e legivel a frameworks extras.
 - Validacao fica nas bordas, regras ficam no dominio.
 

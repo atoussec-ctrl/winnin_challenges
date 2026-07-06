@@ -11,7 +11,6 @@ COPY apps/qa/package.json apps/qa/
 COPY apps/web/package.json apps/web/
 COPY packages/ai-agent/package.json packages/ai-agent/
 COPY packages/domain/package.json packages/domain/
-COPY packages/shared/package.json packages/shared/
 COPY packages/testing/package.json packages/testing/
 RUN pnpm install --frozen-lockfile
 
