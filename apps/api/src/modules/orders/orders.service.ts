@@ -1,5 +1,5 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { CreateOrderUseCase, type Order } from "@desafio/domain";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { CreateOrderUseCase, EmailAlreadyInUseError, type Order } from "@desafio/domain";
 import type {
   CreateOrderInput,
   CreateProductInput,
@@ -62,8 +62,12 @@ export class OrdersService {
   }
 
   public async createUser(input: CreateUserInput): Promise<UserModel> {
+    // Fast-path: evita a escrita na maioria dos casos, mas nao fecha a corrida
+    // (check-then-act). Sob concorrencia, o indice unico do banco e quem
+    // garante a invariante - o repositorio Postgres traduz a violacao para o
+    // mesmo EmailAlreadyInUseError, e o DomainErrorFilter cuida do 409.
     if (await this.users.hasUserWithEmail(input.email)) {
-      throw new ConflictException(`Email ${input.email} is already in use.`);
+      throw new EmailAlreadyInUseError(input.email);
     }
 
     return this.toUserModel(
