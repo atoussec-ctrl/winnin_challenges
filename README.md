@@ -2,7 +2,7 @@
 
 Este repositorio consolida os desafios de Backend, Frontend, Data Science/RAG e QA em uma base TypeScript com Nest.js, Next.js, LangChain.js, LangSmith, Tailwind CSS, shadcn/ui, Atomic Design e Playwright.
 
-## Documentacao
+## Documentação
 
 - [Analise dos documentos originais](docs/00-analise-documentos.md)
 - [Product spec](docs/01-product-spec.md)
