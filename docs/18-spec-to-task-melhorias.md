@@ -11,30 +11,34 @@ Converte a analise de `docs/17-melhorias-estruturais.md` (e os itens abertos de
 4. Verificar ao vivo contra o sistema rodando (nao so teste unitario).
 5. Refatorar mantendo verde; commit semantico; PR por milestone.
 
-## Milestone A - Banco de dados robusto (DB-01, DB-02, DB-04)
+## Milestone A - Banco de dados robusto (DB-01, DB-02, DB-04) — FEITO
 
 Tarefas:
 
-- [ ] Teste de integracao: `EXPLAIN` de `listOrdersByUserIds` usa index scan (ou, mais
+- [x] Teste de integracao: `EXPLAIN` de `listOrdersByUserIds` usa index scan (ou, mais
       simples: schema contem os 3 indices — asserts via `pg_indexes`).
-- [ ] Adicionar indices `orders(user_id)`, `order_items(order_id)`,
+- [x] Adicionar indices `orders(user_id)`, `order_items(order_id)`,
       `order_items(product_id)` ao schema.
-- [ ] Teste de integracao: `INSERT` direto com `stock = -1` / `quantity = 0` /
+- [x] Teste de integracao: `INSERT` direto com `stock = -1` / `quantity = 0` /
       `price_cents = 0` falha por CHECK constraint.
-- [ ] Adicionar CHECK constraints (`stock >= 0`, `price_cents > 0`, `quantity > 0`,
+- [x] Adicionar CHECK constraints (`stock >= 0`, `price_cents > 0`, `quantity > 0`,
       `unit_price_cents >= 0`, `total_cents >= 0`).
-- [ ] Teste de integracao: dois `createUser` concorrentes com o mesmo email — um
+- [x] Teste de integracao: dois `createUser` concorrentes com o mesmo email — um
       sucesso e um 409; nunca 500.
-- [ ] Criar `EmailAlreadyInUseError` (DomainError) em `packages/domain` (PAT-01).
-- [ ] `PgUsersRepository.saveUser` captura `23505` e lanca `EmailAlreadyInUseError`;
+- [x] Criar `EmailAlreadyInUseError` (DomainError) em `packages/domain` (PAT-01).
+- [x] `PgUsersRepository.saveUser` captura `23505` e lanca `EmailAlreadyInUseError`;
       `OrdersService.createUser` lanca o mesmo erro no fast-path (sai a
       `ConflictException` direta); `DomainErrorFilter` traduz para 409.
 
 Aceite:
 
-- Indices presentes e usados nos caminhos de leitura em lote.
-- Invariantes de estoque/preco/quantidade garantidas pelo banco, com teste provando.
-- Corrida de email responde 409 nos dois backends; dominio sem imports de Nest.
+- [x] Indices presentes e usados nos caminhos de leitura em lote — confirmado via
+      `pg_indexes` e `\d` no Postgres real.
+- [x] Invariantes de estoque/preco/quantidade garantidas pelo banco, com teste
+      provando (4 CHECK constraints, 4 testes de integracao).
+- [x] Corrida de email responde 409 nos dois backends; dominio sem imports de Nest —
+      confirmado com teste de integracao e verificacao ao vivo (duas mutations
+      GraphQL concorrentes: uma 200, uma `Conflict`/409).
 
 ## Milestone B - Leitura eficiente (PERF-01; prepara BE-03)
 
@@ -122,7 +126,7 @@ Aceite:
 
 ## Ordem sugerida
 
-1. **A** (banco: indices, constraints, 409) — pequeno e P1.
+1. ~~**A** (banco: indices, constraints, 409) — pequeno e P1.~~ FEITO.
 2. **C** (config + readiness) — destrava operacao correta no compose/CI.
 3. **B** (hidratacao em lote) — performance com o banco real.
 4. **E** (RAG) — maior gap funcional do desafio DATASCI.

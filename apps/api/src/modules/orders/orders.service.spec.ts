@@ -1,6 +1,6 @@
-import { ConflictException } from "@nestjs/common";
 import {
   CreateOrderUseCase,
+  EmailAlreadyInUseError,
   InsufficientStockError,
   ProductNotFoundError,
   ValidationDomainError,
@@ -85,7 +85,7 @@ describe("OrdersService", () => {
 
     await expect(
       service.createUser({ email: "USER@example.com", name: "Other" })
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).rejects.toBeInstanceOf(EmailAlreadyInUseError);
   });
 
   it("rejects orders for unknown users", async () => {

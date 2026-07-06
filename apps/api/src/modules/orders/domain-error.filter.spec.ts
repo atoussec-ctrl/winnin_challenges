@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
 import {
+  EmailAlreadyInUseError,
   InsufficientStockError,
   ProductNotFoundError,
   ValidationDomainError
@@ -16,6 +17,12 @@ describe("DomainErrorFilter", () => {
 
   it("translates InsufficientStockError into a 409", () => {
     expect(() => filter.catch(new InsufficientStockError("product-1", 5, 2))).toThrow(
+      ConflictException
+    );
+  });
+
+  it("translates EmailAlreadyInUseError into a 409", () => {
+    expect(() => filter.catch(new EmailAlreadyInUseError("ana@example.com"))).toThrow(
       ConflictException
     );
   });
