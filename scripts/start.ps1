@@ -112,7 +112,7 @@ if ($LASTEXITCODE -ne 0) { Write-FailAndExit "Falha ao subir os containers." }
 Write-Ok "Containers criados"
 
 # 5. Health checks reais (nao so o status reportado pelo Docker)
-Wait-ForHttp -Name "api" -Url "http://localhost:$PortApi/health" -TimeoutSeconds 120
+Wait-ForHttp -Name "api" -Url "http://localhost:$PortApi/health/ready" -TimeoutSeconds 120
 Wait-ForHttp -Name "web" -Url "http://localhost:$PortWeb/" -TimeoutSeconds 120
 Wait-ForHttp -Name "serverest" -Url "http://localhost:$PortServerest/usuarios" -TimeoutSeconds 60
 

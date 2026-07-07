@@ -59,7 +59,8 @@ Endpoints:
 | POST | `/threads/{threadId}/messages` | Envia pergunta |
 | GET | `/threads/{threadId}/messages` | Lista historico |
 | POST | `/ask` | Compatibilidade Q&A simples |
-| GET | `/health` | Saude da API (status, timestamp, uptime) |
+| GET | `/health` | Liveness: processo vivo (status, timestamp, uptime) |
+| GET | `/health/ready` | Readiness: dependencias respondem (503 se nao) |
 | GET | `/metrics` | Metricas Prometheus (ver [observabilidade](10-observability.md)) |
 
 ## Erros do GraphQL de Pedidos

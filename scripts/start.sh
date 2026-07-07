@@ -87,7 +87,7 @@ docker compose up -d
 ok "Containers criados"
 
 # 5. Health checks reais (nao so o status reportado pelo Docker)
-wait_for_http "api" "http://localhost:${PORTS_API}/health" 120
+wait_for_http "api" "http://localhost:${PORTS_API}/health/ready" 120
 wait_for_http "web" "http://localhost:${PORTS_WEB}/" 120
 wait_for_http "serverest" "http://localhost:${PORTS_SERVEREST}/usuarios" 60
 

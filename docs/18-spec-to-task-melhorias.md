@@ -56,27 +56,35 @@ Aceite:
 - Listagem de pedidos faz numero constante de queries, independente de N.
 - Nenhuma mudanca de contrato GraphQL (mesma resposta de antes).
 
-## Milestone C - Configuracao e saude (EST-02/SEC-03, BE-04, BE-05)
+## Milestone C - Configuracao e saude (EST-02/SEC-03, BE-04, BE-05) — FEITO
 
 Tarefas:
 
-- [ ] Teste: boot falha com mensagem clara quando `DATABASE_URL` e invalida ou
+- [x] Teste: boot falha com mensagem clara quando `DATABASE_URL` e invalida ou
       `LLM_PROVIDER` e desconhecido (hoje ja falha; passa a falhar pelo schema unico).
-- [ ] Modulo `config/` com `@nestjs/config` + schema Zod cobrindo todo o env
+- [x] Modulo `config/` com `@nestjs/config` + schema Zod cobrindo todo o env
       (`API_PORT`, `DATABASE_URL`, CORS, rate limit, LLM_*, LANGSMITH_*).
-- [ ] Substituir todos os `process.env` diretos por injecao do config tipado
+- [x] Substituir todos os `process.env` diretos por injecao do config tipado
       (`main.ts`, `app.module.ts`, `PgDatabase`, `orchestrator.factory.ts`).
-- [ ] Teste e2e leve: `GET /health` responde ok sem banco; `GET /health/ready`
+- [x] Teste e2e leve: `GET /health` responde ok sem banco; `GET /health/ready`
       responde 503 com Postgres derrubado e 200 com ele saudavel.
-- [ ] Implementar `/health/ready` (SELECT 1 quando ha pool); apontar o healthcheck do
+- [x] Implementar `/health/ready` (SELECT 1 quando ha pool); apontar o healthcheck do
       compose para ele.
-- [ ] `PgDatabase` le `PG_POOL_MAX`/`PG_IDLE_TIMEOUT_MS`/`PG_CONNECTION_TIMEOUT_MS`
+- [x] `PgDatabase` le `PG_POOL_MAX`/`PG_IDLE_TIMEOUT_MS`/`PG_CONNECTION_TIMEOUT_MS`
       do config; defaults documentados no `.env.example`.
+- [x] (Achado durante a verificacao ao vivo, fora do escopo original) o pool do
+      `pg` emitia `error` sem handler quando um client ocioso perdia a conexao -
+      Node tratava como uncaught exception e matava o processo inteiro,
+      derrubando `/health` junto com `/health/ready`. `PgDatabase` agora registra
+      o handler e loga em vez de crashar.
 
 Aceite:
 
-- Nenhum `process.env` fora do modulo de config.
-- Compose marca o container unhealthy quando o banco cai.
+- [x] Nenhum `process.env` fora do modulo de config — confirmado por grep, zero
+      ocorrencias em codigo de producao.
+- [x] Compose marca o container unhealthy quando o banco cai — confirmado ao
+      vivo: parar o Postgres derruba `/health/ready` (503) mas a API sobrevive
+      (`/health` continua 200); subir o Postgres de novo recupera sozinho.
 
 ## Milestone D - Organizacao de codigo (EST-01, EST-03)
 
@@ -123,7 +131,7 @@ Aceite:
 ## Ordem sugerida
 
 1. **A** (banco: indices, constraints, 409) — pequeno e P1.
-2. **C** (config + readiness) — destrava operacao correta no compose/CI.
+2. ~~**C** (config + readiness) — destrava operacao correta no compose/CI.~~ FEITO.
 3. **B** (hidratacao em lote) — performance com o banco real.
 4. **E** (RAG) — maior gap funcional do desafio DATASCI.
 5. **D** e **F** conforme capacidade.

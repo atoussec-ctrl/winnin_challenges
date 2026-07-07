@@ -123,7 +123,8 @@ Ja foram iniciados:
   `User.orders`), validacao de input, erros de dominio traduzidos e REST Swagger
   para threads/ask.
 - Observabilidade na API: logs estruturados JSON, interceptor de metricas por
-  operacao, `GET /metrics` (Prometheus) e `GET /health` com uptime.
+  operacao, `GET /metrics` (Prometheus), `GET /health` (liveness) e `GET /health/ready`
+  (readiness, verifica o Postgres quando presente).
 - Frontend Next.js com AniList e com a pagina `/pedidos` como CRM de pedidos:
   dashboard responsivo com KPIs animados e graficos Recharts (receita 14 dias,
   estoque critico, mais vendidos, pedidos por usuario), alem de cadastro e emissao

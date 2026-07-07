@@ -21,7 +21,10 @@ placeholder. Chaves so sao necessarias para respostas reais de LLM e tracing.
 |---|---|---|---|
 | `NODE_ENV` | nao | `development` | Em `production`, exige `CORS_ALLOWED_ORIGINS` explicita (fail-fast) |
 | `API_PORT` | nao | `3333` | Porta HTTP da API |
-| `DATABASE_URL` | nao | — | Definida: adapter Postgres (transacao + `SELECT ... FOR UPDATE`). Ausente: repositorios in-memory |
+| `DATABASE_URL` | nao | — | Definida: adapter Postgres (transacao + `SELECT ... FOR UPDATE`). Ausente: repositorios in-memory. Validada no boot (deve comecar com `postgres://` ou `postgresql://`) |
+| `PG_POOL_MAX` | nao | `10` | Numero maximo de conexoes do pool (BE-05) |
+| `PG_IDLE_TIMEOUT_MS` | nao | `30000` | Tempo ate fechar uma conexao ociosa do pool |
+| `PG_CONNECTION_TIMEOUT_MS` | nao | `5000` | Tempo maximo esperando uma conexao livre do pool |
 | `CORS_ALLOWED_ORIGINS` | em producao | `http://localhost:3001` (dev) | Allowlist de origens, separada por virgula |
 | `RATE_LIMIT_MAX` | nao | `100` | Requisicoes por janela, por IP |
 | `RATE_LIMIT_TTL_MS` | nao | `60000` | Janela do rate limit em ms |

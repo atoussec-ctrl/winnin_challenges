@@ -35,7 +35,13 @@ api_request_duration_ms_max{operation="graphql Mutation.createOrder"} 7
 
 ## Health check
 
-- `GET /health` responde `{ status, timestamp, uptimeSeconds }` para probes de liveness.
+- `GET /health` responde `{ status, timestamp, uptimeSeconds }` para probes de liveness
+  (o processo esta de pe; nao verifica dependencias).
+- `GET /health/ready` (BE-04) responde `{ status, timestamp }` com 200 quando as
+  dependencias respondem (`SELECT 1` no Postgres, quando `DATABASE_URL` esta definida;
+  sem ela, nao ha o que checar e o endpoint responde ok por definicao) e 503 quando
+  alguma falha. E o endpoint que orquestradores (`docker-compose`, K8s) devem monitorar
+  antes de mandar trafego.
 
 ## Cobertura
 

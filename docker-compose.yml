@@ -9,13 +9,19 @@ services:
       # SELECT ... FOR UPDATE); sem ela, cai nos repositorios in-memory. O host
       # e o nome do servico na rede do compose.
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/desafio
+      # A imagem roda com NODE_ENV=production (ver Dockerfile), e cors.config.ts
+      # exige essa allowlist em producao (fail-fast); sem ela o container
+      # crash-loopava antes mesmo do healthcheck ter a chance de rodar.
+      CORS_ALLOWED_ORIGINS: http://localhost:3001
     ports:
       - "3333:3333"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3333/health"]
+      # BE-04: readiness (nao so liveness) - falha se o Postgres nao responder
+      # SELECT 1, em vez de reportar saudavel com o banco fora do ar.
+      test: ["CMD", "wget", "-qO-", "http://localhost:3333/health/ready"]
       interval: 5s
       timeout: 5s
       retries: 10

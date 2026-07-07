@@ -22,6 +22,7 @@ import {
 import { UsersRepository } from "./users.repository";
 
 @Module({
+  exports: [PgDatabase],
   providers: [
     // Ciclo de vida do pool do Postgres. Sem DATABASE_URL, `pool` e null e os
     // tokens abaixo caem nos repositorios in-memory - a mesma arquitetura de

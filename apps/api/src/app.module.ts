@@ -1,10 +1,13 @@
 import { ApolloDriver, type ApolloDriverConfig } from "@nestjs/apollo";
 import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { GraphQLModule } from "@nestjs/graphql";
 import { ThrottlerModule } from "@nestjs/throttler";
 import depthLimit from "graphql-depth-limit";
 import { buildThrottlerOptions } from "./config/throttler.config";
+import type { AppEnv } from "./config/env.schema";
+import { loadEnv } from "./config/env.schema";
 import { GqlThrottlerGuard } from "./gql-throttler.guard";
 import { HealthController } from "./health.controller";
 import { AiModule } from "./modules/ai/ai.module";
@@ -26,7 +29,17 @@ const MAX_QUERY_DEPTH = 8;
       sortSchema: true,
       validationRules: [depthLimit(MAX_QUERY_DEPTH)]
     }),
-    ThrottlerModule.forRoot(buildThrottlerOptions(process.env)),
+    // EST-02/SEC-03: ponto unico de leitura/validacao do env (Zod, ver
+    // env.schema.ts). Global para nao precisar reimportar em cada modulo.
+    ConfigModule.forRoot({ isGlobal: true, validate: loadEnv }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<AppEnv, true>) =>
+        buildThrottlerOptions({
+          RATE_LIMIT_MAX: config.get("RATE_LIMIT_MAX", { infer: true }),
+          RATE_LIMIT_TTL_MS: config.get("RATE_LIMIT_TTL_MS", { infer: true })
+        })
+    }),
     ObservabilityModule,
     OrdersModule,
     AiModule
