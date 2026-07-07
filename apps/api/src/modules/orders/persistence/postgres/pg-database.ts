@@ -13,7 +13,10 @@ import { ensureSchema } from "./schema";
 export class PgDatabase implements OnModuleInit, OnModuleDestroy {
   public readonly pool: Pool | null;
 
-  public constructor(config: ConfigService<AppEnv, true>, logger: StructuredLogger) {
+  public constructor(
+    config: ConfigService<AppEnv, true>,
+    private readonly logger: StructuredLogger
+  ) {
     const connectionString = config.get("DATABASE_URL", { infer: true });
     this.pool = connectionString
       ? new Pool({
@@ -22,7 +25,13 @@ export class PgDatabase implements OnModuleInit, OnModuleDestroy {
           // por env em producao quando o padrao nao servir.
           connectionTimeoutMillis: config.get("PG_CONNECTION_TIMEOUT_MS", { infer: true }),
           idleTimeoutMillis: config.get("PG_IDLE_TIMEOUT_MS", { infer: true }),
-          max: config.get("PG_POOL_MAX", { infer: true })
+          max: config.get("PG_POOL_MAX", { infer: true }),
+          // connectionTimeoutMillis so limita adquirir a conexao; sem isto, um
+          // Postgres alcancavel mas travado (lock, I/O) deixa uma query presa
+          // para sempre - e o /health/ready comprovado ao vivo (BE-04) fica
+          // pendurado em vez de reportar 503, indo consumindo o pool inteiro a
+          // cada novo poll do healthcheck.
+          query_timeout: config.get("PG_CONNECTION_TIMEOUT_MS", { infer: true })
         })
       : null;
 
@@ -33,13 +42,24 @@ export class PgDatabase implements OnModuleInit, OnModuleDestroy {
     // responder porque a API morria junto. Logar e deixar o pool se recuperar
     // sozinho na proxima query e o que evita esse acoplamento.
     this.pool?.on("error", (error) => {
-      logger.error(error, "PgDatabase");
+      this.logger.error(error, "PgDatabase");
     });
   }
 
   public async onModuleInit(): Promise<void> {
-    if (this.pool) {
+    if (!this.pool) {
+      return;
+    }
+
+    try {
       await ensureSchema(this.pool);
+    } catch (error) {
+      // Postgres pode estar inacessivel no boot (container ainda subindo,
+      // rede instavel) - sem o catch, isso derrubava o processo inteiro antes
+      // do HTTP server sequer subir, o que matava tanto /health quanto
+      // /health/ready (comprovado ao vivo). Logar e seguir o boot: /health
+      // fica de pe e /health/ready reporta 503 ate o banco responder.
+      this.logger.error(error, "PgDatabase");
     }
   }
 

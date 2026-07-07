@@ -2,6 +2,7 @@ import { Controller, Get, ServiceUnavailableException } from "@nestjs/common";
 import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
 import { PgDatabase } from "./modules/orders/persistence/postgres/pg-database";
+import { StructuredLogger } from "./observability/structured-logger";
 
 // Isento do rate limit global: orquestradores (Docker/K8s) fazem polling
 // frequente deste endpoint para healthcheck.
@@ -9,7 +10,10 @@ import { PgDatabase } from "./modules/orders/persistence/postgres/pg-database";
 @ApiTags("health")
 @Controller("health")
 export class HealthController {
-  public constructor(private readonly database: PgDatabase) {}
+  public constructor(
+    private readonly database: PgDatabase,
+    private readonly logger: StructuredLogger
+  ) {}
 
   @Get()
   @ApiOkResponse({ description: "API is healthy." })
@@ -32,7 +36,8 @@ export class HealthController {
     if (this.database.pool) {
       try {
         await this.database.pool.query("SELECT 1");
-      } catch {
+      } catch (error) {
+        this.logger.error(error, "HealthController");
         throw new ServiceUnavailableException({
           status: "error",
           timestamp: new Date().toISOString()

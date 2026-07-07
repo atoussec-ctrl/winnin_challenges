@@ -70,4 +70,30 @@ describe("loadEnv", () => {
   it("rejects a non-positive PG_POOL_MAX", () => {
     expect(() => loadEnv({ PG_POOL_MAX: "0" })).toThrow(/PG_POOL_MAX/);
   });
+
+  it("treats an empty DATABASE_URL the same as unset, falling back to in-memory mode", () => {
+    const env = loadEnv({ DATABASE_URL: "" });
+
+    expect(env.DATABASE_URL).toBeUndefined();
+  });
+
+  it("treats empty numeric pool variables as unset, applying the documented defaults", () => {
+    const env = loadEnv({
+      API_PORT: "",
+      PG_CONNECTION_TIMEOUT_MS: "",
+      PG_IDLE_TIMEOUT_MS: "",
+      PG_POOL_MAX: ""
+    });
+
+    expect(env.API_PORT).toBe(3333);
+    expect(env.PG_POOL_MAX).toBe(10);
+    expect(env.PG_IDLE_TIMEOUT_MS).toBe(30_000);
+    expect(env.PG_CONNECTION_TIMEOUT_MS).toBe(5_000);
+  });
+
+  it("treats an empty NODE_ENV as unset, defaulting to development", () => {
+    const env = loadEnv({ NODE_ENV: "" });
+
+    expect(env.NODE_ENV).toBe("development");
+  });
 });

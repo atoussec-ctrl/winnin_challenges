@@ -35,8 +35,20 @@ export const envSchema = z.object({
 
 export type AppEnv = z.infer<typeof envSchema>;
 
+// Uma variavel presente mas vazia (comum em .env gerados por template, ou
+// orquestradores que sempre setam a chave) deve se comportar como ausente,
+// nao como um valor invalido - e o mesmo efeito que a checagem "falsy" direta
+// em process.env.X tinha antes deste schema existir.
+function emptyStringsToUndefined(
+  raw: Record<string, string | undefined>
+): Record<string, string | undefined> {
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, value]) => [key, value === "" ? undefined : value])
+  );
+}
+
 export function loadEnv(raw: Record<string, string | undefined>): AppEnv {
-  const result = envSchema.safeParse(raw);
+  const result = envSchema.safeParse(emptyStringsToUndefined(raw));
 
   if (!result.success) {
     const details = result.error.issues
