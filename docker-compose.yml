@@ -12,7 +12,10 @@ services:
       # A imagem roda com NODE_ENV=production (ver Dockerfile), e cors.config.ts
       # exige essa allowlist em producao (fail-fast); sem ela o container
       # crash-loopava antes mesmo do healthcheck ter a chance de rodar.
-      CORS_ALLOWED_ORIGINS: http://localhost:3001
+      # ${VAR:-default} le do .env na raiz (nao commitado) - sobrescreva la para
+      # acessar o web a partir de outro dispositivo da rede local (ver
+      # NEXT_PUBLIC_API_URL do servico web, pensado para esse mesmo cenario).
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3001}
     ports:
       - "3333:3333"
     depends_on:

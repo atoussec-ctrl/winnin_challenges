@@ -31,7 +31,8 @@ para o pnpm workspace):
 | chroma    | 8000  | Vetor store (plano de IA/RAG)                      |
 | serverest | 3000  | API alvo dos estudos de QA                         |
 
-- `api` tem healthcheck em `GET /health`; `web` so inicia depois do `api` saudavel.
+- `api` tem healthcheck em `GET /health/ready` (readiness, checa o Postgres); `web`
+  so inicia depois do `api` saudavel.
 - Comandos:
 
 ```bash
@@ -51,7 +52,7 @@ comportamento nas duas linguagens:
    compose ja as ocupa.
 3. `docker compose build` (ou `--no-cache`/`-Rebuild` para forcar rebuild total).
 4. `docker compose up -d`, subindo os 5 servicos.
-5. Health checks reais via HTTP (nao so o status reportado pelo Docker): `GET /health`
+5. Health checks reais via HTTP (nao so o status reportado pelo Docker): `GET /health/ready`
    da api, `GET /` do web, `GET /usuarios` do serverest — com timeout e mensagem de erro
    acionavel se algum nao responder.
 6. `node scripts/seed.mjs` — popula usuarios/produtos/pedidos de demonstracao (pulado

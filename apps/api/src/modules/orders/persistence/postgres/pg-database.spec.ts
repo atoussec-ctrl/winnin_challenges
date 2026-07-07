@@ -37,6 +37,12 @@ describe("PgDatabase", () => {
     expect(database.pool?.options.connectionTimeoutMillis).toBe(5000);
   });
 
+  it("bounds query execution time so a stalled Postgres cannot hang readiness checks forever", () => {
+    const database = new PgDatabase(fakeConfig("postgresql://u:p@h:5432/d"), fakeLogger().logger);
+
+    expect(database.pool?.options.query_timeout).toBe(5000);
+  });
+
   it("logs instead of letting the pool crash the process when an idle client loses the connection", () => {
     const { error, logger } = fakeLogger();
     const database = new PgDatabase(fakeConfig("postgresql://u:p@h:5432/d"), logger);
@@ -44,5 +50,21 @@ describe("PgDatabase", () => {
 
     expect(() => database.pool?.emit("error", boom)).not.toThrow();
     expect(error).toHaveBeenCalledWith(boom, "PgDatabase");
+  });
+
+  it("logs instead of crashing the process when Postgres is unreachable at startup", async () => {
+    const { error, logger } = fakeLogger();
+    const database = new PgDatabase(fakeConfig("postgresql://u:p@h:5432/d"), logger);
+    const boom = new Error("connect ECONNREFUSED 127.0.0.1:5432");
+    vi.spyOn(database.pool!, "query").mockRejectedValue(boom);
+
+    await expect(database.onModuleInit()).resolves.toBeUndefined();
+    expect(error).toHaveBeenCalledWith(boom, "PgDatabase");
+  });
+
+  it("does nothing on init when there is no pool (in-memory mode)", async () => {
+    const database = new PgDatabase(fakeConfig(undefined), fakeLogger().logger);
+
+    await expect(database.onModuleInit()).resolves.toBeUndefined();
   });
 });
