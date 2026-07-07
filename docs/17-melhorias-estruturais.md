@@ -13,7 +13,7 @@ Prioridade: **P1** proximo ciclo · **P2** depois · **P3** oportunistico.
 
 ## 1. Banco de dados
 
-### DB-01 (P1) — Indices ausentes nas foreign keys
+### DB-01 (P1) — Indices ausentes nas foreign keys — FEITO
 
 **Evidencia**: `schema.ts` cria apenas o indice unico de email. Postgres **nao** cria
 indice automaticamente para colunas FK. `orders.user_id`, `order_items.order_id` e
@@ -29,7 +29,10 @@ ANY($1)`) e a hidratacao de itens (`WHERE order_id = ANY($1)`) fazem sequential 
 pedidos. Sem indice, o custo cresce linear com a tabela inteira; com indice, com o
 resultado. Barato agora, caro de diagnosticar depois.
 
-### DB-02 (P1) — Constraints de integridade como ultima linha de defesa
+**Feito**: os 3 indices estao no schema idempotente; presenca confirmada via
+`pg_indexes` (teste de integracao) e `\d` no Postgres real.
+
+### DB-02 (P1) — Constraints de integridade como ultima linha de defesa — FEITO
 
 **Evidencia**: as invariantes (estoque nunca negativo, preco positivo, quantidade
 positiva) sao garantidas so pela aplicacao (`CreateOrderUseCase` + `FOR UPDATE`).
@@ -42,6 +45,9 @@ Qualquer escrita fora da aplicacao (script, hotfix manual, bug futuro) pode viol
 **Por que**: defesa em profundidade. O banco passa a garantir a invariante mesmo se a
 aplicacao errar — e um `UPDATE ... SET stock = stock - n` concorrente que passasse por
 um caminho sem lock falharia em vez de corromper o estoque.
+
+**Feito**: as 5 constraints estao no schema; 4 testes de integracao provam a rejeicao
+(`stock`, `price_cents`, `quantity`, `total_cents`).
 
 ### DB-03 (P2) — Migracoes versionadas no lugar do schema idempotente
 
@@ -57,7 +63,7 @@ atual; DB-01/DB-02 entram como segunda migracao.
 **Por que**: e o pre-requisito para mudar schema com dados em producao. Ja registrado
 como "faria diferente com mais tempo" no README — este e o plano concreto.
 
-### DB-04 (P1) — Race de email unico responde 500 em vez de 409
+### DB-04 (P1) — Race de email unico responde 500 em vez de 409 — FEITO
 
 **Evidencia**: `OrdersService.createUser` faz `hasUserWithEmail` e depois `saveUser`
 (check-then-act, nao atomico). Sob corrida, o indice unico `users_email_lower_idx`
@@ -72,6 +78,11 @@ simultaneos com o mesmo email — um 200, um 409, nunca 500.
 
 **Por que**: correcao de contrato sob concorrencia — mesma filosofia do teste de
 estoque, aplicada ao cadastro.
+
+**Feito**: `EmailAlreadyInUseError` (PAT-01) criado no dominio; `PgUsersRepository`
+traduz o `23505`; teste de integracao com dois `createUser` concorrentes prova um
+sucesso + um erro "already in use"; verificado tambem ao vivo via duas mutations
+GraphQL simultaneas (uma 200, outra `Conflict`).
 
 ## 2. Backend / performance
 
@@ -189,13 +200,16 @@ removido localmente. Nenhuma acao no repo.
 
 ## 4. Design patterns
 
-### PAT-01 (P2) — Erro de conflito como erro de dominio
+### PAT-01 (P2) — Erro de conflito como erro de dominio — FEITO
 
 Hoje `ConflictException` (Nest) e lancada direto no `OrdersService.createUser` — a
 camada de aplicacao conhece HTTP. Com DB-04, criar `EmailAlreadyInUseError` como
 `DomainError` e deixar o `DomainErrorFilter` traduzir para 409 (mesmo caminho dos
 erros de estoque). **Por que**: consistencia — toda a taxonomia de erros de negocio
 passa a viver no dominio, e o service volta a ser transporte-agnostico.
+
+**Feito**: implementado junto com DB-04 — `packages/domain/src/users/user-errors.ts`;
+`OrdersService` nao importa mais `ConflictException`.
 
 ### PAT-02 (P2) — Circuit breaker por provedor de LLM (resto do AI-07)
 
@@ -214,17 +228,17 @@ escrita tem formas e cargas diferentes; nao antecipar antes de PERF-01 provar li
 
 | ID | Area | Item | Prioridade | Status |
 |---|---|---|---|---|
-| DB-01 | Banco | Indices nas FKs | P1 | |
-| DB-02 | Banco | CHECK constraints | P1 | |
-| DB-04 | Banco | 23505 -> 409 (race de email) | P1 | |
+| DB-01 | Banco | Indices nas FKs | P1 | FEITO |
+| DB-02 | Banco | CHECK constraints | P1 | FEITO |
+| DB-04 | Banco | 23505 -> 409 (race de email) | P1 | FEITO |
 | PERF-01 | Backend | N+1 de hidratacao contra Postgres | P1 | |
 | BE-04 | Backend | Readiness check com ping no banco | P1 | FEITO |
 | EST-02 | Estrutura | Config centralizada validada (SEC-03) | P1 | FEITO |
 | DB-03 | Banco | Migracoes versionadas | P2 | |
 | OBS-01 | Backend | Correlation id nos logs | P2 | |
 | EST-01 | Estrutura | persistence/in-memory simetrico | P2 | |
-| PAT-01 | Patterns | EmailAlreadyInUseError no dominio | P2 | |
+| PAT-01 | Patterns | EmailAlreadyInUseError no dominio | P2 | FEITO |
 | PAT-02 | Patterns | Circuit breaker por provider | P2 | |
 | BE-05 | Backend | Tuning do pool por env | P3 | FEITO |
 | EST-03 | Estrutura | form-contract fora de organisms | P3 | |
-| PAT-03 | Patterns | Read model paginado | P3 |
+| PAT-03 | Patterns | Read model paginado | P3 | |

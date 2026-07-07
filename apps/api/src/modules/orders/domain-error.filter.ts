@@ -1,6 +1,11 @@
 import { BadRequestException, Catch, ConflictException, NotFoundException } from "@nestjs/common";
 import type { ExceptionFilter } from "@nestjs/common";
-import { DomainError, InsufficientStockError, ProductNotFoundError } from "@desafio/domain";
+import {
+  DomainError,
+  EmailAlreadyInUseError,
+  InsufficientStockError,
+  ProductNotFoundError
+} from "@desafio/domain";
 
 // Traduz erros de dominio para excecoes HTTP/GraphQL uma unica vez, no lugar
 // de cada service fazer sua propria cadeia de instanceof. Registrado como
@@ -16,7 +21,7 @@ export class DomainErrorFilter implements ExceptionFilter {
       return new NotFoundException(error.message);
     }
 
-    if (error instanceof InsufficientStockError) {
+    if (error instanceof InsufficientStockError || error instanceof EmailAlreadyInUseError) {
       return new ConflictException(error.message);
     }
 
